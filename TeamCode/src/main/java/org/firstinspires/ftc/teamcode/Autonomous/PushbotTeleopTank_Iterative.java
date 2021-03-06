@@ -30,11 +30,11 @@
 package org.firstinspires.ftc.teamcode.Autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 
@@ -55,58 +55,28 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 
 @TeleOp(name="Pushbot: Teleop Tank", group="Pushbot")
 //@Disabled
-public class PushbotTeleopTank_Iterative extends OpMode{
+public class PushbotTeleopTank_Iterative extends LinearOpMode {
 
     /* Declare OpMode members. */
-    //HardwarePushbot robot       = new HardwarePushbot(); // use the class created to define a Pushbot's hardware
     DcMotor leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive = null;
-    double          clawOffset  = 0.0 ;                  // Servo mid position
-    final double    CLAW_SPEED  = 0.02 ;                 // sets rate to move servo
+    
 
-    /*
-     * Code to run ONCE when the driver hits INIT
-     */
+
     @Override
-    public void init() {
-        /* Initialize the hardware variables.
-         * The init() method of the hardware class does all the work here
-         */
-        //robot.init(hardwareMap);
-
-        // Send telemetry message to signify robot waiting;
-        telemetry.addData("Say", "Hello Driver");    //
+    public void runOpMode() {
 
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        leftFrontDrive  = hardwareMap.get(DcMotor.class, "left_front_drive");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
-        leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
+        leftFrontDrive = hardwareMap.get(DcMotor.class, "LM DT");
+        rightFrontDrive = hardwareMap.get(DcMotor.class, "RM DT");
+        leftBackDrive = hardwareMap.get(DcMotor.class, "LR DT");
+        rightBackDrive = hardwareMap.get(DcMotor.class, "RR DT");
 
-        leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
-    }
+        rightFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-    /*
-     * Code to run REPEATEDLY after the driver hits INIT, but before they hit PLAY
-     */
-    @Override
-    public void init_loop() {
-    }
-
-    /*
-     * Code to run ONCE when the driver hits PLAY
-     */
-    @Override
-    public void start() {
-    }
-
-    /*
-     * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
-     */
-    @Override
-    public void loop() {
+        waitForStart();
 
         // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
         double frontRightPowerFactor, frontLeftPowerFactor, backRightPowerFactor, backLeftPowerFactor;
@@ -116,81 +86,93 @@ public class PushbotTeleopTank_Iterative extends OpMode{
         double thetaLeft = Math.atan2(-gamepad1.left_stick_y, gamepad1.left_stick_x);
         double pi = Math.PI;
 
-        if(thetaRight > 0 && thetaRight < pi/2){
+        if (thetaRight > 0 && thetaRight < pi / 2) {
             frontRightPowerFactor = -Math.cos(2 * thetaRight);
-        }else if(thetaRight >= -pi && thetaRight < -pi/2){
+        } else if (thetaRight >= -pi && thetaRight < -pi / 2) {
             frontRightPowerFactor = Math.cos(2 * thetaRight);
-        }else if(thetaRight >= pi/2 && thetaRight <= pi){
+        } else if (thetaRight >= pi / 2 && thetaRight <= pi) {
             frontRightPowerFactor = 1;
-        }else{
+        } else {
             frontRightPowerFactor = -1;
         }
 
-        if(thetaLeft > 0 && thetaLeft < pi/2) {
+        if (thetaLeft > 0 && thetaLeft < pi / 2) {
             backLeftPowerFactor = -Math.cos(2 * thetaLeft);
-        }else if(thetaLeft >= -pi && thetaLeft < -pi/2){
+        } else if (thetaLeft >= -pi && thetaLeft < -pi / 2) {
             backLeftPowerFactor = Math.cos(2 * thetaLeft);
-        }else if(thetaLeft >= pi/2 && thetaLeft <= pi){
+        } else if (thetaLeft >= pi / 2 && thetaLeft <= pi) {
             backLeftPowerFactor = 1;
-        }else{
+        } else {
             backLeftPowerFactor = -1;
         }
 
-        if(thetaRight > -pi/2 && thetaRight < 0) {
+        if (thetaRight > -pi / 2 && thetaRight < 0) {
             backRightPowerFactor = Math.cos(2 * thetaRight);
-        }else if(thetaRight > pi/2 && thetaRight < pi){
+        } else if (thetaRight > pi / 2 && thetaRight < pi) {
             backRightPowerFactor = -Math.cos(2 * thetaRight);
-        }else if(thetaRight >= 0 && thetaRight <= pi/2){
+        } else if (thetaRight >= 0 && thetaRight <= pi / 2) {
             backRightPowerFactor = 1;
-        }else{
+        } else {
             backRightPowerFactor = -1;
         }
 
-        if(thetaLeft > -pi/2 && thetaLeft < 0) {
+        if (thetaLeft > -pi / 2 && thetaLeft < 0) {
             frontLeftPowerFactor = Math.cos(2 * thetaLeft);
-        }else if(thetaLeft > pi/2 && thetaLeft < pi){
+        } else if (thetaLeft > pi / 2 && thetaLeft < pi) {
             frontLeftPowerFactor = -Math.cos(2 * thetaLeft);
-        }else if(thetaLeft >= 0 && thetaLeft <= pi/2){
+        } else if (thetaLeft >= 0 && thetaLeft <= pi / 2) {
             frontLeftPowerFactor = 1;
-        }else{
+        } else {
             frontLeftPowerFactor = -1;
         }
 
-        if(gamepad1.a){
-            leftFrontDrive.setPower(0.5);
-            leftBackDrive.setPower(0.5);
-            rightFrontDrive.setPower(0.5);
-            rightBackDrive.setPower(0.5);
-        }else if(gamepad1.b){
-            leftFrontDrive.setPower(-0.5);
-            leftBackDrive.setPower(-0.5);
-            rightFrontDrive.setPower(-0.5);
-            rightBackDrive.setPower(-0.5);
-        }else{
-            leftFrontDrive.setPower(frontLeftPowerFactor * magLeft);
-            rightFrontDrive.setPower(frontRightPowerFactor * magRight);
-            leftBackDrive.setPower(backLeftPowerFactor * magLeft);
-            rightBackDrive.setPower(backRightPowerFactor * magRight);
-        }
+        // for test robot (just chassis & camera)
+//        if(gamepad1.a){
+//            leftFrontDrive.setPower(0.5);
+//            leftBackDrive.setPower(0.5);
+//            rightFrontDrive.setPower(0.5);
+//            rightBackDrive.setPower(0.5);
+//        }else if(gamepad1.b){
+//            leftFrontDrive.setPower(-0.5);
+//            leftBackDrive.setPower(-0.5);
+//            rightFrontDrive.setPower(-0.5);
+//            rightBackDrive.setPower(-0.5);
+//        }else{
+//            leftFrontDrive.setPower(frontLeftPowerFactor * magLeft);
+//            rightFrontDrive.setPower(frontRightPowerFactor * magRight);
+//            leftBackDrive.setPower(backLeftPowerFactor * magLeft);
+//            rightBackDrive.setPower(backRightPowerFactor * magRight);
+//        }
+
+        // for actual competition robot
+//        if(gamepad1.a){
+//            leftFrontDrive.setPower(-0.5);
+//            leftBackDrive.setPower(-0.5);
+//            rightFrontDrive.setPower(-0.5);
+//            rightBackDrive.setPower(-0.5);
+//        }else if(gamepad1.b){
+//            leftFrontDrive.setPower(0.5);
+//            leftBackDrive.setPower(0.5);
+//            rightFrontDrive.setPower(0.5);
+//            rightBackDrive.setPower(0.5);
+//        }else{
+        leftFrontDrive.setPower(-frontLeftPowerFactor * magLeft);
+        rightFrontDrive.setPower(-frontRightPowerFactor * magRight);
+        leftBackDrive.setPower(-backLeftPowerFactor * magLeft);
+        rightBackDrive.setPower(-backRightPowerFactor * magRight);
+//        }
 
 
-        telemetry.addData("front right power ", ((float)Math.round(rightFrontDrive.getPower()*100))/100);
-        telemetry.addData("front left power ", ((float)Math.round(leftFrontDrive.getPower() *100))/100);
-        telemetry.addData("back right power ", ((float)Math.round(rightBackDrive.getPower()*100))/100);
-        telemetry.addData("back left power ", ((float)Math.round(leftBackDrive.getPower()*100))/100);
-        telemetry.addData("left joystick x", ((float)Math.round(gamepad1.left_stick_x * 100))/100);
-        telemetry.addData("left joystick y", ((float)Math.round(-gamepad1.left_stick_y * 100))/100);
-        telemetry.addData("magnitude left", ((float)Math.round(magLeft*100))/100);
-        telemetry.addData("thetaLeft", ((float)Math.round(thetaLeft/pi*100))/100);
+        telemetry.addData("front right power ", ((float) Math.round(rightFrontDrive.getPower() * 100)) / 100);
+        telemetry.addData("front left power ", ((float) Math.round(leftFrontDrive.getPower() * 100)) / 100);
+        telemetry.addData("back right power ", ((float) Math.round(rightBackDrive.getPower() * 100)) / 100);
+        telemetry.addData("back left power ", ((float) Math.round(leftBackDrive.getPower() * 100)) / 100);
+        telemetry.addData("left joystick x", ((float) Math.round(gamepad1.left_stick_x * 100)) / 100);
+        telemetry.addData("left joystick y", ((float) Math.round(-gamepad1.left_stick_y * 100)) / 100);
+        telemetry.addData("magnitude left", ((float) Math.round(magLeft * 100)) / 100);
+        telemetry.addData("thetaLeft", ((float) Math.round(thetaLeft / pi * 100)) / 100);
 
         telemetry.update();
 
-    }
-
-    /*
-     * Code to run ONCE after the driver hits STOP
-     */
-    @Override
-    public void stop() {
     }
 }

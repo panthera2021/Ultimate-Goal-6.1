@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.Shared;
 
+import android.util.Log;
+
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -7,6 +10,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import java.util.HashMap;
 
@@ -17,8 +24,10 @@ public class Drive {
     public HardwareMap hardwareMap; // will be set in OpModeManager.runActiveOpMode
     private ElapsedTime runtime = new ElapsedTime();
     static final double     COUNTS_PER_MOTOR_REV    = 28 ;    // eg: TETRIX Motor Encoder
-    static final double     DRIVE_GEAR_REDUCTION    = 40 ;     // This is < 1.0 if geared UP
-    static final double     WHEEL_DIAMETER_INCHES   = 3 ;     // For figuring circumference
+    //static final double     DRIVE_GEAR_REDUCTION    = 40 ;     // This is < 1.0 if geared UP //For test robot
+    static final double     DRIVE_GEAR_REDUCTION    = 19.2 ;     // This is < 1.0 if geared UP
+    //static final double     WHEEL_DIAMETER_INCHES   = 3 ;     // For figuring circumference  //For test robot
+    static final double     WHEEL_DIAMETER_INCHES   = 3.75 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
                                                       (WHEEL_DIAMETER_INCHES * 3.1415);
     static final double     DRIVE_SPEED             = 1;
@@ -27,6 +36,8 @@ public class Drive {
     HashMap <DcMotor, Integer> motorInitialPositions, motorTargetPositions;
     HashMap <DcMotor, Double> motorPowerFactors;
 
+    BNO055IMU               imu;
+    Orientation lastAngles = new Orientation();
 
     public Drive(LinearOpMode _opMode){
         opMode = _opMode;
@@ -45,22 +56,42 @@ public class Drive {
         motorPowerFactors = new HashMap<>();
 
         // Send telemetry message to signify robot waiting;
-        telemetry.addData("Say", "Hello Driver");    //
+        //telemetry.addData("Say", "Hello Driver");
 
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "left_front_drive");
-        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "right_front_drive");
-        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "left_back_drive");
-        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "right_back_drive");
+//        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "left_front_drive");  //For test robot
+//        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "right_front_drive");
+//        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "left_back_drive");
+//        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "right_back_drive");
+        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "LM DT");
+        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "RM DT");
+        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "LR DT");
+        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "RR DT");
 
-        leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);  //For test robot
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = false;
+
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+        // make sure the imu gyro is calibrated before continuing.
+        while (!opMode.isStopRequested() && !imu.isGyroCalibrated()) {
+            opMode.sleep(50);
+            opMode.idle();
+        }
     }
 
-    public void vroom_vroom (double magRight, double thetaRight, double magLeft, double thetaLeft, double timeout) {
-        // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
+    public void vroom_vroom (double magRight, double thetaRight, double magLeft, double thetaLeft) {
         double rightFrontPowerFactor, leftFrontPowerFactor, rightBackPowerFactor, leftBackPowerFactor;
         double pi = Math.PI;
 
@@ -120,15 +151,17 @@ public class Drive {
 
         setMotorPowers(magLeft, magRight);
 
-        telemetry.addData("front right power ", ((float)Math.round(rightFrontDrive.getPower()*100))/100);
-        telemetry.addData("front left power ", ((float)Math.round(leftFrontDrive.getPower() *100))/100);
-        telemetry.addData("back right power ", ((float)Math.round(rightBackDrive.getPower()*100))/100);
-        telemetry.addData("back left power ", ((float)Math.round(leftBackDrive.getPower()*100))/100);
-        telemetry.addData("magnitude left ", ((float)Math.round(magLeft*100))/100);
-        telemetry.addData("thetaLeft ", ((float)Math.round(thetaLeft/pi*100))/100);
+//        telemetry.addData("front right power ", ((float)Math.round(rightFrontDrive.getPower()*100))/100);
+//        telemetry.addData("front left power ", ((float)Math.round(leftFrontDrive.getPower() *100))/100);
+//        telemetry.addData("back right power ", ((float)Math.round(rightBackDrive.getPower()*100))/100);
+//        telemetry.addData("back left power ", ((float)Math.round(leftBackDrive.getPower()*100))/100);
+//        telemetry.addData("magnitude left ", ((float)Math.round(magLeft*100))/100);
+//        telemetry.addData("thetaLeft ", ((float)Math.round(thetaLeft/pi*100))/100);
+//        telemetry.update();
+    }
 
-        telemetry.update();
-
+    public void vroomVroomWaitForEncoders(double magRight, double thetaRight, double magLeft, double thetaLeft, double timeout){
+        vroom_vroom(magRight, thetaRight, magLeft, thetaLeft);
         // keep looping while we are still active, and there is time left, and both motors are running.
         // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
         // its target position, the motion will stop.  This is "safer" in the event that the robot will
@@ -136,18 +169,19 @@ public class Drive {
         // However, if you require that BOTH motors have finished their moves before the robot continues
         // onto the next step, use (isBusy() || isBusy()) in the loop test.
         boolean isAccelerating = true, isDecelerating = false;
+        double accelerationStartTime = runtime.seconds();
         while (opMode.opModeIsActive() &&
                 (runtime.seconds() < timeout) &&
                 (leftFrontDrive.isBusy() || leftBackDrive.isBusy() || rightFrontDrive.isBusy() || rightBackDrive.isBusy())) {
 
             if(isAccelerating){
-                setMotorPowers(Math.max(getFractionalPosition(leftFrontDrive)*magLeft*20, 0.1), Math.max(getFractionalPosition(rightFrontDrive)*magRight*20, 0.1));
-                if(getFractionalPosition(leftFrontDrive) >= .2){
+                setMotorPowers(Math.max(getFractionalPosition(leftFrontDrive)*magLeft*20, 0.2), Math.max(getFractionalPosition(rightFrontDrive)*magRight*20, 0.1));
+                if(getFractionalPosition(leftFrontDrive) >= 0.05){
                     isAccelerating = false;
                 }
             }else if(!isDecelerating){
                 setMotorPowers(magLeft, magRight);
-                if(getFractionalPosition(leftFrontDrive) >= .8){
+                if(getFractionalPosition(leftFrontDrive) >= 0.95){
                     isDecelerating = true;
                 }
             }else{
@@ -162,6 +196,89 @@ public class Drive {
                     rightFrontDrive.getCurrentPosition());
             telemetry.addData("getFractionalPosition", getFractionalPosition(leftFrontDrive));
             telemetry.update();
+        }
+    }
+
+    //               ^
+    //               |  Y axis
+    //               |
+    //    ---------------------
+    //    |        Front      |
+    //    |                   |
+    //    |                   |   X axis
+    //    |        Robot      |----------->
+    //    |                   |
+    //    |      top view     |
+    //    ---------------------
+    public void vroomVroomMonitorTicks(double speed, double xInches, double yInches, double timeout) {
+        //Borrowed Holonomic robot navigation ideas from https://www.bridgefusion.com/blog/2019/4/10/robot-localization-dead-reckoning-in-first-tech-challenge-ftc
+        //    Robot Localization -- Dead Reckoning in First Tech Challenge (FTC)
+        double theta = Math.atan2(yInches, xInches);
+        double magnitude = Math.hypot(xInches, yInches);
+        int tickCountPriorLeftFront = leftFrontDrive.getCurrentPosition(), tickCountPriorLeftBack = leftBackDrive.getCurrentPosition();
+        int tickCountPriorRightFront = rightFrontDrive.getCurrentPosition(), tickCountPriorRightBack = rightBackDrive.getCurrentPosition();
+        int ticksTraveledLeftFront = 0, ticksTraveledLeftBack = 0, ticksTraveledRightFront = 0, ticksTraveledRightBack = 0;
+        double inchesTraveledX = 0, inchesTraveledY = 0, inchesTraveledTotal = 0, rotationInchesTotal = 0;
+        double cycleMillisNow = 0, cycleMillisPrior = System.currentTimeMillis(), cycleMillisDelta, startMillis = System.currentTimeMillis();
+        vroom_vroom(speed, theta, speed, theta);
+        adjustThetaInit();
+        setTargetAngle(0);
+        while (opMode.opModeIsActive() && runtime.seconds() < timeout && inchesTraveledTotal <= magnitude){
+            int tickCountNowLeftFront = leftFrontDrive.getCurrentPosition();
+            int tickCountNowLeftBack = leftBackDrive.getCurrentPosition();
+            int tickCountNowRightFront = rightFrontDrive.getCurrentPosition();
+            int tickCountNowRightBack = rightBackDrive.getCurrentPosition();
+            int deltaTicksLeftFront = tickCountNowLeftFront - tickCountPriorLeftFront;
+            int deltaTicksLeftBack = tickCountNowLeftBack - tickCountPriorLeftBack;
+            int deltaTicksRightFront = tickCountNowRightFront - tickCountPriorRightFront;
+            int deltaTicksRightBack = tickCountNowRightBack - tickCountPriorRightBack;
+            ticksTraveledLeftFront += deltaTicksLeftFront;
+            ticksTraveledLeftBack += deltaTicksLeftBack;
+            ticksTraveledRightFront += deltaTicksRightFront;
+            ticksTraveledRightBack += deltaTicksRightBack;
+            double leftFrontInchesDelta = deltaTicksLeftFront / COUNTS_PER_INCH;
+            double rightFrontInchesDelta = -deltaTicksRightFront / COUNTS_PER_INCH;  //Minus sign converts to holonomic drive perspective
+            double rightBackInchesDelta = -deltaTicksRightBack / COUNTS_PER_INCH;  //Minus sign converts to holonomic drive perspective
+            double leftBackInchesDelta = deltaTicksLeftBack / COUNTS_PER_INCH;
+            double rotationAvgInchesDelta = (leftFrontInchesDelta + rightFrontInchesDelta + rightBackInchesDelta + leftBackInchesDelta)/4;
+            rotationInchesTotal += rotationAvgInchesDelta;
+            double leftFrontRobotInchesDelta = leftFrontInchesDelta - rotationAvgInchesDelta;
+            double rightFrontRobotInchesDelta = rightFrontInchesDelta - rotationAvgInchesDelta;
+            double rightBackRobotInchesDelta = rightBackInchesDelta - rotationAvgInchesDelta;
+            double leftBackRobotInchesDelta = leftBackInchesDelta - rotationAvgInchesDelta;
+            double deltaInchesRobotX = (leftFrontRobotInchesDelta + rightFrontRobotInchesDelta - rightBackRobotInchesDelta - leftBackRobotInchesDelta) / (2 * Math.sqrt(2));
+            double deltaInchesRobotY = (leftFrontRobotInchesDelta - rightFrontRobotInchesDelta - rightBackRobotInchesDelta + leftBackRobotInchesDelta) / (2 * Math.sqrt(2));
+            double deltaInchesRobot = Math.hypot(deltaInchesRobotX, deltaInchesRobotY);
+            double FUDGE_FACTOR = 36/51.0;
+            inchesTraveledX += deltaInchesRobotX * FUDGE_FACTOR;
+            inchesTraveledY += deltaInchesRobotY * FUDGE_FACTOR;
+            inchesTraveledTotal += Math.hypot(deltaInchesRobotX * FUDGE_FACTOR, deltaInchesRobotY * FUDGE_FACTOR);
+
+            //Provide feedback to keep robot moving in right direction based on encoder ticks
+            adjustTheta(xInches, yInches, speed, inchesTraveledX, inchesTraveledY);  //Must call adjustThetaInit() before a loop with adjustTheta()
+
+            cycleMillisNow = System.currentTimeMillis();
+            cycleMillisDelta = cycleMillisNow - cycleMillisPrior;
+            cycleMillisPrior = cycleMillisNow;
+            telemetry.addData("Ticks Traveled (lf, lb)", "%7d, %7d", ticksTraveledLeftFront, ticksTraveledLeftBack);
+            telemetry.addData("Ticks Traveled (rf, rb)", "%7d, %7d", ticksTraveledRightFront, ticksTraveledRightBack);
+            telemetry.addData("In Traveled (X, Y)", "X: %.1f, Y: %.1f", inchesTraveledX, inchesTraveledY);
+            telemetry.addData("In Traveled (Tot, Rot)", "%.1f, %.1f", inchesTraveledTotal,rotationInchesTotal);
+            telemetry.addData("Cycle Millis:", "%4f", cycleMillisDelta);
+            telemetry.update();
+            Log.i("Drive", String.format("Ticks Traveled (lf, lb): %7d, %7d", ticksTraveledLeftFront, ticksTraveledLeftBack));
+            Log.i("Drive", String.format("Ticks Traveled (rf, rb): %7d, %7d", ticksTraveledRightFront, ticksTraveledRightBack));
+            Log.i("Drive", String.format("Ticks Delta (lf, lb): %7d, %7d", deltaTicksLeftFront, deltaTicksLeftBack));
+            Log.i("Drive", String.format("Ticks Delta (rf, rb): %7d, %7d", deltaTicksRightFront, deltaTicksRightBack));
+            Log.i("Drive", String.format("In Traveled (X, Y): X: %.2f, Y: %.2f", inchesTraveledX, inchesTraveledY));
+            Log.i("Drive", String.format("In Traveled (Tot, Rot): %.2f, %.2f", inchesTraveledTotal,rotationInchesTotal));
+            Log.i("Drive", String.format("Incremental Speed (in/sec): %.2f", deltaInchesRobot/cycleMillisDelta * 1000));
+            Log.i("Drive", String.format("Cycle Millis: %.3f, Total Seconds: %.3f", cycleMillisDelta, (System.currentTimeMillis() - startMillis)/1000));
+
+            tickCountPriorLeftFront = tickCountNowLeftFront;
+            tickCountPriorLeftBack = tickCountNowLeftBack;
+            tickCountPriorRightFront = tickCountNowRightFront;
+            tickCountPriorRightBack = tickCountNowRightBack;
         }
     }
 
@@ -193,10 +310,18 @@ public class Drive {
         leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
     }
 
     public void ceaseMotion(){
         // Stop all motion;
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftFrontDrive.setPower(0);
         leftBackDrive.setPower(0);
         rightFrontDrive.setPower(0);
@@ -227,9 +352,137 @@ public class Drive {
     }
 
     public void setMotorPowers(double magLeft, double magRight){
-        leftFrontDrive.setPower(motorPowerFactors.get(leftFrontDrive) * magLeft);
+        leftFrontDrive.setPower(motorPowerFactors.get(leftFrontDrive) * magLeft);  //For test robot
         rightFrontDrive.setPower(motorPowerFactors.get(leftBackDrive) * magRight);
         leftBackDrive.setPower(motorPowerFactors.get(rightFrontDrive) * magLeft);
         rightBackDrive.setPower(motorPowerFactors.get(rightBackDrive) * magRight);
+//        leftFrontDrive.setPower(-motorPowerFactors.get(leftFrontDrive) * magLeft);
+//        rightFrontDrive.setPower(-motorPowerFactors.get(leftBackDrive) * magRight);
+//        leftBackDrive.setPower(-motorPowerFactors.get(rightFrontDrive) * magLeft);
+//        rightBackDrive.setPower(-motorPowerFactors.get(rightBackDrive) * magRight);
+    }
+
+    private double thetaErrorSum;
+    public void adjustThetaInit() { thetaErrorSum = 0; }
+    public void adjustTheta(double targetX, double targetY, double targetSpeed, double nowX, double nowY){
+        if(nowX == 0 && nowY == 0){
+            Log.i("Drive", "adjustTheta: nowX and nowY are both still zero so not computing an adjustment factor yet");
+            return;
+        }
+        double GAIN = 0.6, THETA_ERROR_SUM_MAX = Math.PI/4/GAIN; //Max error sum is +/- 45 degrees
+        double targetTheta = Math.atan2(targetY, targetX);
+        double nowTheta = Math.atan2(nowY, nowX);
+//        if((targetTheta - nowTheta > 0 && thetaErrorSum < THETA_ERROR_SUM_MAX) || (targetTheta - nowTheta < 0 && thetaErrorSum > -THETA_ERROR_SUM_MAX))
+//            thetaErrorSum += Math.min(Math.max(targetTheta - nowTheta, -THETA_ERROR_SUM_MAX), THETA_ERROR_SUM_MAX);  //Max allowed increment is max value
+//        double adjustedTargetTheta = targetTheta + GAIN * thetaErrorSum;
+        double adjustedTargetTheta = targetTheta + GAIN * (targetTheta - nowTheta);
+        Speeds speeds = getSpeeds(targetSpeed);
+        vroom_vroom(speeds.rightSpeed, adjustedTargetTheta, speeds.leftSpeed, adjustedTargetTheta);
+//        vroom_vroom(targetSpeed, targetTheta, targetSpeed, targetTheta);
+        Log.i("Drive", String.format("IMU angle: %.2f, adj angle: %.2f, right/left speed: %.3f/%.3f", mCurrentImuAngle, mAdjustedAngle, speeds.rightSpeed, speeds.leftSpeed));
+        Log.i("Drive", String.format("adjustTheta: (degrees) target: %.4f, now: %.4f, adjusted: %.4f, error: %.4f",
+                targetTheta/Math.PI*180, nowTheta/Math.PI*180, adjustedTargetTheta/Math.PI*180, thetaErrorSum/Math.PI*180));
+    }
+
+    double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle;
+
+    public void setTargetAngle(double targetAngle){
+        mPriorImuAngle = mTargetAngle = targetAngle;
+    }
+
+    public double getImuAngle(){
+        // We experimentally determined the Z axis is the axis we want to use for heading angle.
+        // We have to process the angle because the imu works in euler angles so the Z axis is
+        // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
+        // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
+
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        return mCurrentImuAngle = angles.firstAngle;
+    }
+
+    /**
+     *
+     * @return Angle in degrees. + = left, - = right.
+     */
+    public double getImuDeltaAngle(){
+        // We experimentally determined the Z axis is the axis we want to use for heading angle.
+        // We have to process the angle because the imu works in euler angles so the Z axis is
+        // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
+        // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
+
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        double deltaAngle = (mCurrentImuAngle = angles.firstAngle) - mPriorImuAngle;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        return deltaAngle;
+    }
+
+    /**
+     *
+     * @return New adjusted angle used to create adjusted power levels
+     */
+    public double getAdjustedAngle(){
+        return mAdjustedAngle = mPriorAdjustedAngle + getImuDeltaAngle();
+    }
+
+    /**
+     * See if we are moving in a straight line and if not return a power correction value.
+     * @return Power adjustment, + is adjust left - is adjust right.
+     */
+    private double getPowerCorrection()
+    {
+        // The gain value determines how sensitive the correction is to direction changes.
+        // You will have to experiment with your robot to get small smooth direction changes
+        // to stay on a straight line.
+        double angleError, powerCorrection, angle, gain;
+
+        angle = getAdjustedAngle();
+
+        angleError = mTargetAngle - angle;        // reverse sign of angle for correction.
+
+        gain = Math.max(-0.15*Math.abs(angleError) + .15, .05);  //Varies from .15 around zero to .05 for errors above 10 degrees
+        powerCorrection = angleError * gain;
+
+        return powerCorrection;
+    }
+
+    private enum Side{
+        Left, Right
+    }
+
+    private class Speeds{
+        public double rightSpeed;
+        public double leftSpeed;
+        public Speeds(double right, double left){
+            rightSpeed = right;
+            leftSpeed = left;
+        }
+    }
+
+    /**
+     * Get the adjusted speeds for each side of the robot to allow it to turn enough to stay on a straight line. Only call once per cycle.
+     * @param targetSpeed
+     * @return
+     */
+    private Speeds getSpeeds(double targetSpeed){
+        double powerCorrection = getPowerCorrection();
+        double adjustedLeftSpeed, adjustedRightSpeed;
+        if(targetSpeed + powerCorrection > 1){
+            adjustedRightSpeed = 1;
+            adjustedLeftSpeed = 1 - 2 * powerCorrection; // power - (2 * powerCorrection - (1 - power))
+        } else if (targetSpeed - powerCorrection > 1){
+            adjustedRightSpeed = 1 + 2 * powerCorrection;
+            adjustedLeftSpeed = 1;
+        } else {
+            adjustedRightSpeed = targetSpeed + powerCorrection;
+            adjustedLeftSpeed = targetSpeed - powerCorrection;
+        }
+        mPriorImuAngle = mCurrentImuAngle;
+        mPriorAdjustedAngle = mAdjustedAngle;
+        return new Speeds(adjustedRightSpeed, adjustedLeftSpeed);
     }
 }

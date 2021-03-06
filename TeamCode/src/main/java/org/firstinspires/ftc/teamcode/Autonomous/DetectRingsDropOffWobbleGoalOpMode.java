@@ -29,15 +29,19 @@
 
 package org.firstinspires.ftc.teamcode.Autonomous;
 
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.Shared.Drive;
 
 import java.util.List;
 
@@ -51,12 +55,14 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@TeleOp(name = "Concept: TensorFlow Object Detection", group = "Concept")
+@TeleOp(name = "Detect Rings & Drop Off Wobble Goal", group = "Concept")
 //@Disabled
-public class ConceptTensorFlowObjectDetection extends LinearOpMode {
+public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
+    private final String TAG = getClass().getName();
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Quad";
     private static final String LABEL_SECOND_ELEMENT = "Single";
+    private ElapsedTime runtime = new ElapsedTime();
 
     /*
      * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -104,38 +110,91 @@ public class ConceptTensorFlowObjectDetection extends LinearOpMode {
             // If your target is at distance greater than 50 cm (20") you can adjust the magnification value
             // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
             // should be set to the value of the images used to create the TensorFlow Object Detection model
-            // (typically 16/9).
-            tfod.setZoom(1.75, 16.0/9.0);
+            // (typically 1.78 or 16/9).
+
+            // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
+            tfod.setZoom(1.75, 1.78);
         }
 
-        /** Wait for the game to begin */
-        telemetry.addData(">", "Press Play to start op mode");
-        telemetry.update();
-        waitForStart();
+        runtime.reset();
+        int singleVotes = 0;
+        int quadVotes = 0;
+        int votes = 0;
 
-        if (opModeIsActive()) {
-            while (opModeIsActive()) {
-                if (tfod != null) {
-                    // getUpdatedRecognitions() will return null if no new information is available since
-                    // the last time that call was made.
-                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                    if (updatedRecognitions != null) {
-                      telemetry.addData("# Object Detected", updatedRecognitions.size());
-
-                      // step through the list of recognitions and display boundary info.
-                      int i = 0;
-                      for (Recognition recognition : updatedRecognitions) {
-                        telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                        telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                                          recognition.getLeft(), recognition.getTop());
-                        telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                                recognition.getRight(), recognition.getBottom());
-                      }
-                      telemetry.update();
+        while (runtime.seconds() < 2) {
+            if (tfod != null) {
+                // getUpdatedRecognitions() will return null if no new information is available since
+                // the last time that call was made.
+                List<Recognition> updatedRecognitions = tfod.getRecognitions();
+                if (updatedRecognitions != null) {
+                    votes++;
+                    // step through the list of recognitions and display boundary info.
+                    int i = 0;
+                    for (Recognition recognition : updatedRecognitions) {
+                        if (recognition.getConfidence() < 0.8) {
+                            continue;
+                        }
+                        if (recognition.getLabel() == LABEL_FIRST_ELEMENT) {
+                            quadVotes++;
+                        } else {
+                            singleVotes++;
+                        }
                     }
                 }
             }
         }
+
+        telemetry.addData("votes (single, quad)", "%d, %d", singleVotes, quadVotes);
+        telemetry.addData("total votes", votes);
+        telemetry.addData("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes);
+        telemetry.addLine("Waiting for IMU...");
+        telemetry.update();
+        Log.i(TAG, String.format("runOpMode: votes (single, quad) %d, %d", singleVotes, quadVotes));
+        Log.i(TAG, String.format("total votes", votes));
+        Log.i(TAG, String.format("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes));
+        Log.i(TAG, "runOpmode: Waiting for IMU...");
+
+        Drive drive = new Drive(this);
+        drive.init();
+
+        telemetry.addData("votes (single, quad)", "%d, %d", singleVotes, quadVotes);
+        telemetry.addData("total votes", votes);
+        telemetry.addData("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes);
+        telemetry.addLine("IMU ready");
+        telemetry.update();
+        Log.i(TAG, "runOpmode: IMU ready");
+
+        /** Wait for the game to begin */
+        waitForStart();
+
+        drive.runUsingEncoder();
+
+        Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+
+        double SPEED = 1;
+        if(singleVotes/(double)votes > 0.5){
+            //drive to square b
+            drive.vroomVroomMonitorTicks(SPEED, 10, 10, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED, 0, 50, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED, -30, 30, 10);
+        }else if(quadVotes/(double)votes > 0.5){
+            //drive to square c
+            drive.vroomVroomMonitorTicks(SPEED, 14, 14, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED, 0, 96, 10);
+        }else{
+            //drive to square a
+            drive.vroomVroomMonitorTicks(SPEED, 14, 14, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED, 0, 54, 10);
+//            drive.ceaseMotion();
+//            sleep(3000);
+//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//            drive.vroomVroomMonitorTicks(SPEED, -16, -9, 4);
+        }
+        drive.ceaseMotion();
 
         if (tfod != null) {
             tfod.shutdown();

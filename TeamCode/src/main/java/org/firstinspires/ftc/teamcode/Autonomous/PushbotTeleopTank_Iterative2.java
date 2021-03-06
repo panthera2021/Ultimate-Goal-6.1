@@ -75,10 +75,10 @@ public class PushbotTeleopTank_Iterative2 extends OpMode{
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-        leftFrontDrive  = hardwareMap.get(DcMotor.class, "left_front_drive");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
-        leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
+        leftFrontDrive  = hardwareMap.get(DcMotor.class, "LM DT");
+        rightFrontDrive = hardwareMap.get(DcMotor.class, "RM DT");
+        leftBackDrive = hardwareMap.get(DcMotor.class, "LR DT");
+        rightBackDrive = hardwareMap.get(DcMotor.class, "RR DT");
 
         leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);

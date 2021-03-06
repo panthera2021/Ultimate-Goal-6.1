@@ -29,15 +29,11 @@
 
 package org.firstinspires.ftc.teamcode.Autonomous;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 import org.firstinspires.ftc.teamcode.Shared.Drive;
 
 /**
@@ -97,12 +93,64 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
         if (opModeIsActive()) {
 
-            drive.setNewTargetPosition(48, 48);
-            drive.turnOnRunToPosition();
+            //drive.setNewTargetPosition(48, 48);
+            //drive.turnOnRunToPosition();
 
-            drive.vroom_vroom(1, Math.PI/2, 1, Math.PI/2, 10.0);
-            drive.setNewTargetPosition(32, 32);
-            drive.vroom_vroom(.75, Math.PI/2, .75, Math.PI/2, 10.0);
+            //drive.setNewTargetPosition(32, 32);
+            //drive.vroom_vroom(.75, Math.PI/2, .75, Math.PI/2, 10.0);
+
+            drive.runUsingEncoder();
+
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(.3, -14, 0, 10);
+//            drive.vroomVroomMonitorTicks(1, 12, 12, 10);
+//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//            drive.vroomVroomMonitorTicks(1, -12, 12, 10);
+//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//            drive.vroomVroomMonitorTicks(1, 0, 33, 10);
+//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//            drive.vroomVroomMonitorTicks(2/3, 0, 1, 10);
+//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//            drive.vroomVroomMonitorTicks(1/3, 0, 1, 10);
+            drive.ceaseMotion();
+            if(1+1 == 2) return;
+            //each block individually from starting position
+                //block 1
+            //drive.vroomVroomMonitorTicks(1, 3, 3, 10);
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //drive.vroomVroomMonitorTicks(1, 0, 68, 10);
+
+                //block 2
+            //drive.vroomVroomMonitorTicks(1, 3, 3, 10);
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //drive.vroomVroomMonitorTicks(1, 0, 68, 10);
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //drive.vroomVroomMonitorTicks(1, -24, 24, 10);
+
+                //block 3
+            //drive.vroomVroomMonitorTicks(1, 3, 3, 10);
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //drive.vroomVroomMonitorTicks(1, 0, 116, 10);
+
+
+            //all together now
+            drive.vroomVroomMonitorTicks(1, 3, 3, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 0, 68, 10);
+            drive.ceaseMotion();
+            sleep(1000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, -24, 22, 10);
+            drive.ceaseMotion();
+            sleep(1000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 24, 24, 10);
+
+
+
+            drive.ceaseMotion();
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //sleep(2000);
 
             drive.ceaseMotion();
         }
@@ -111,10 +159,10 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 //        encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
 //        encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
-        sleep(1000);     // pause for servos to move
+        //sleep(40000);     // pause for servos to move
 
-        telemetry.addData("Path", "Complete");
-        telemetry.update();
+        //telemetry.addData("Path", "Complete");
+        //telemetry.update();
     }
 
     /*
@@ -137,7 +185,7 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
             drive.setNewTargetPosition(leftInches, rightInches);
             drive.turnOnRunToPosition();
 
-            drive.vroom_vroom(speed, theta, speed, theta, timeoutS);
+            drive.vroom_vroom(speed, theta, speed, theta);
 
             drive.ceaseMotion();
         }
