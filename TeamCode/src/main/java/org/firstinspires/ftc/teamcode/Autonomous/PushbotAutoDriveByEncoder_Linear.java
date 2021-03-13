@@ -31,6 +31,7 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 
 import android.util.Log;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -86,8 +87,15 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
         drive.stopResetEncoder();
         drive.runUsingEncoder();
 
+
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
+
+        /* while(opModeIsActive()){
+            drive.getImuAngle();
+            sleep(500);
+        }
+        if(1+1 == 2) return; */
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
@@ -102,7 +110,15 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
             drive.runUsingEncoder();
 
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(.3, -14, 0, 10);
+            drive.vroomVroomMonitorTicks(.5, 0, 4, 10);
+//            drive.ceaseMotion();
+//            sleep(2000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(.5, 0, 48, 10);
+            drive.ceaseMotion();
+            sleep(2000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(.5, 0, -52, 10);
 //            drive.vroomVroomMonitorTicks(1, 12, 12, 10);
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
 //            drive.vroomVroomMonitorTicks(1, -12, 12, 10);
@@ -113,6 +129,7 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
 //            drive.vroomVroomMonitorTicks(1/3, 0, 1, 10);
             drive.ceaseMotion();
+            sleep(2000);
             if(1+1 == 2) return;
             //each block individually from starting position
                 //block 1

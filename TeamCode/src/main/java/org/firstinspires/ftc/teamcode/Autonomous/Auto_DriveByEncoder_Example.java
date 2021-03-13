@@ -49,7 +49,7 @@ import org.firstinspires.ftc.teamcode.HardwareMap.HardwareMap_Example;
 // CHAWKS: Name it something useful!
 @Autonomous(name="RedZone Right 1 Test", group="RedTest")
 // CHAWKS: What does @Disabled mean? what happens if we remove it?
-//@Disabled
+@Disabled
 public class Auto_DriveByEncoder_Example extends LinearOpMode {
 
     /* CHAWKS: Call and declare the robot here */

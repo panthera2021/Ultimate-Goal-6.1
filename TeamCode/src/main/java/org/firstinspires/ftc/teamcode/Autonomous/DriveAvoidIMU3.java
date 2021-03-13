@@ -11,6 +11,7 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -25,7 +26,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 @TeleOp(name="Drive Avoid Imu 3", group="Exercises")
-//@Disabled
+@Disabled
 public class DriveAvoidIMU3 extends LinearOpMode
 {
     String                  TAG = "DriveAvoidIMU3";

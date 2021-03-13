@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode.Autonomous;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -50,7 +51,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
  */
 
 @TeleOp(name="Pushbot: Teleop Tank Continuous Sinewave", group="Pushbot")
-//@Disabled
+@Disabled
 public class PushbotTeleopTank_Iterative2 extends OpMode{
 
     /* Declare OpMode members. */
