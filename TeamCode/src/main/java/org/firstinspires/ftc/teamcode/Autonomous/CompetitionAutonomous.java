@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.Autonomous;
 
 import android.util.Log;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -30,7 +32,8 @@ public class CompetitionAutonomous extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 
     private Servo Load;
-    private DcMotor Ring, Elevate, Sweep;
+    private DcMotorEx Ring;
+    private DcMotor Elevate, Sweep;
 
     private static final String VUFORIA_KEY =
             "AUmiib//////AAABmbrFAeBqbkd/hmTwBoU6jXFUjeYK8xAgeYu6r9ZuLmpgb4tqNl4oIhXkpbBXmCusnhPlxJ3DHEkExTnQKhvCU49Yu2jslI6vaQ+V5F21ZAbbBod6lm9zyBEpkujo7IOq2TdOaJSIdN5wW3zxrHTksfrzBuKZKRsArompruh7jrm/B4W3F/EunA8ymkVoi29W84q81XMwJyonWlS2sd3pebXvLW0YOKmA63QgdmtSpp9XVAccwiH8ND8rk7FXlIIucim1Ig5FmVPLIx88t7doptXh8uiXfHHMqXc1T1MrRvfemYaUqyg7I5lYLNjLhuRmBZO3BM/qoyjPhpMVtGNh6+z3VgaKhP7O6zI07W0mmMfO";
@@ -42,9 +45,11 @@ public class CompetitionAutonomous extends LinearOpMode {
     @Override
     public void runOpMode() {
         Load = hardwareMap.get(Servo.class, "Load");
-        Ring = hardwareMap.get(DcMotor.class, "Ring");
+        Ring = hardwareMap.get(DcMotorEx.class, "Ring");
         Elevate = hardwareMap.get(DcMotor.class, "Elevate");
         Sweep = hardwareMap.get(DcMotor.class, "Sweep");
+
+        Ring.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         initVuforia();
         initTfod();
@@ -162,7 +167,7 @@ public class CompetitionAutonomous extends LinearOpMode {
             drive.turnSweeper(.7, 1.0);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
             drive.vroomVroomMonitorTicks(SPEED/2, -27, -14, 4);
-            drive.vroomVroomMonitorTicks(SPEED/2, 0, 12, 4);
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 8, 4);
             // Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
             // drive.vroomVroomMonitorTicks(SPEED/2, 0, -12, 4);
             // Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
@@ -170,7 +175,8 @@ public class CompetitionAutonomous extends LinearOpMode {
         }
         drive.ceaseMotion();
 
-        Ring.setPower(1);
+        Ring.setVelocity(554040, AngleUnit.DEGREES);
+        //Ring.setPower(.95);
         sleep(1000);
 
         Load.setPosition(0.67);

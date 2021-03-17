@@ -17,7 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import java.util.HashMap;
 
-public class Drive {
+public class Drive2 {
     String TAG = "Drive";
     public DcMotor leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive = null;
     private DcMotor Sweep;
@@ -41,7 +41,7 @@ public class Drive {
     BNO055IMU               imu;
     Orientation lastAngles = new Orientation();
 
-    public Drive(LinearOpMode _opMode){
+    public Drive2(LinearOpMode _opMode){
         opMode = _opMode;
         hardwareMap = opMode.hardwareMap;
         telemetry = opMode.telemetry;
@@ -488,7 +488,7 @@ public class Drive {
                 targetTheta/Math.PI*180, nowTheta/Math.PI*180, adjustedTargetTheta/Math.PI*180, thetaErrorSum/Math.PI*180));
     }
 
-    double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle, mImuCalibrationAngle;
+    double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle, mImuCalibrationAngle, mImuAngleErrorSum = 0;
 
     public void setTargetAngle(double targetAngle){
         mPriorImuAngle = mTargetAngle = targetAngle;
@@ -556,12 +556,13 @@ public class Drive {
         // to stay on a straight line.
         double angleError, powerCorrection, angle, gain;
 
-        angle = getAdjustedAngle();
+        angle = getImuAngle();  //Not corrected for Euler angle
 
         angleError = mTargetAngle - angle;        // reverse sign of angle for correction.
+        mImuAngleErrorSum += angleError;
 
-        gain = Math.max(-0.8*Math.abs(angleError) + 1.0, .2);  //Varies from .2 around zero to .05 for errors above 10 degrees
-        powerCorrection = angleError * gain;
+        gain = Math.max(-0.3*Math.abs(angleError) + 0.5, .2);  //Varies from .2 around zero to .05 for errors above 10 degrees
+        powerCorrection = angleError * gain;// + mImuAngleErrorSum * gain/2;
 
         return powerCorrection;
     }

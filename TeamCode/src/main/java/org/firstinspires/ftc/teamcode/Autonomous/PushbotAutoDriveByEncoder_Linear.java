@@ -36,6 +36,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.Shared.Drive;
+import org.firstinspires.ftc.teamcode.Shared.Drive2;
 
 /**
  * This file illustrates the concept of driving a path based on encoder counts.
@@ -77,7 +78,7 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
          * The init() method of the hardware class does all the work here
          */
         // robot.init(hardwareMap);
-        Drive drive = new Drive(this);
+        Drive2 drive = new Drive2(this);
         drive.init();
 
         // Send telemetry message to signify robot waiting;
@@ -109,16 +110,23 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
             drive.runUsingEncoder();
 
-            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(.5, 0, 4, 10);
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //drive.vroomVroomMonitorTicks(.5, 0, 4, 10);
 //            drive.ceaseMotion();
 //            sleep(2000);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(.5, 0, 48, 10);
+            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
             drive.ceaseMotion();
             sleep(2000);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(.5, 0, -52, 10);
+            drive.vroomVroomMonitorTicks(1, 0, -24, 10);
+            drive.ceaseMotion();
+            sleep(2000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 48, 0, 10);
+            drive.ceaseMotion();
+            sleep(2000);
+            drive.vroomVroomMonitorTicks(1, -48, 0, 10);
 //            drive.vroomVroomMonitorTicks(1, 12, 12, 10);
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
 //            drive.vroomVroomMonitorTicks(1, -12, 12, 10);

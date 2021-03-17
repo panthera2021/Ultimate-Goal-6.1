@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -9,14 +11,15 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import org.firstinspires.ftc.teamcode.Shared.Drive;
 
 
-@TeleOp(name="Competition 2", group="TeleOp")
+@TeleOp(name="Competition 2 OBJ", group="TeleOp")
 //@Disabled
 public class CompetitionTeleOp2 extends LinearOpMode {
 
     /* Declare OpMode members. */
     DcMotor leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive = null;
     private Servo Load;
-    private DcMotor Ring, Elevate, Sweep;
+    private DcMotorEx Ring;
+    private DcMotor Elevate, Sweep;
 
     @Override
     public void runOpMode() {
@@ -33,9 +36,11 @@ public class CompetitionTeleOp2 extends LinearOpMode {
         rightBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
         Load = hardwareMap.get(Servo.class, "Load");
-        Ring = hardwareMap.get(DcMotor.class, "Ring");
+        Ring = hardwareMap.get(DcMotorEx.class, "Ring");
         Elevate = hardwareMap.get(DcMotor.class, "Elevate");
         Sweep = hardwareMap.get(DcMotor.class, "Sweep");
+
+        Ring.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         Drive drive = new Drive(this);
         drive.init();
@@ -44,7 +49,7 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 
         Load.setPosition(0);
 
-        while(opModeIsActive()){
+        while (opModeIsActive()) {
             // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
             double frontRightPowerFactor, frontLeftPowerFactor, backRightPowerFactor, backLeftPowerFactor;
             double magRight = Math.hypot(gamepad1.right_stick_x, gamepad1.right_stick_y);
@@ -93,43 +98,43 @@ public class CompetitionTeleOp2 extends LinearOpMode {
             frontLeftPowerFactor = -1;
         }*/
 
-            if(thetaRight > 0 && thetaRight < pi/2){
+            if (thetaRight > 0 && thetaRight < pi / 2) {
                 frontRightPowerFactor = -Math.cos(2 * thetaRight);
-            }else if(thetaRight >= -pi && thetaRight < -pi/2){
+            } else if (thetaRight >= -pi && thetaRight < -pi / 2) {
                 frontRightPowerFactor = Math.cos(2 * thetaRight);
-            }else if(thetaRight >= pi/2 && thetaRight <= pi){
+            } else if (thetaRight >= pi / 2 && thetaRight <= pi) {
                 frontRightPowerFactor = 1;
-            }else{
+            } else {
                 frontRightPowerFactor = -1;
             }
 
-            if(thetaLeft > 0 && thetaLeft < pi/2) {
+            if (thetaLeft > 0 && thetaLeft < pi / 2) {
                 backLeftPowerFactor = -Math.cos(2 * thetaLeft);
-            }else if(thetaLeft >= -pi && thetaLeft < -pi/2){
+            } else if (thetaLeft >= -pi && thetaLeft < -pi / 2) {
                 backLeftPowerFactor = Math.cos(2 * thetaLeft);
-            }else if(thetaLeft >= pi/2 && thetaLeft <= pi){
+            } else if (thetaLeft >= pi / 2 && thetaLeft <= pi) {
                 backLeftPowerFactor = 1;
-            }else{
+            } else {
                 backLeftPowerFactor = -1;
             }
 
-            if(thetaRight > -pi/2 && thetaRight < 0) {
+            if (thetaRight > -pi / 2 && thetaRight < 0) {
                 backRightPowerFactor = Math.cos(2 * thetaRight);
-            }else if(thetaRight > pi/2 && thetaRight < pi){
+            } else if (thetaRight > pi / 2 && thetaRight < pi) {
                 backRightPowerFactor = -Math.cos(2 * thetaRight);
-            }else if(thetaRight >= 0 && thetaRight <= pi/2){
+            } else if (thetaRight >= 0 && thetaRight <= pi / 2) {
                 backRightPowerFactor = 1;
-            }else{
+            } else {
                 backRightPowerFactor = -1;
             }
 
-            if(thetaLeft > -pi/2 && thetaLeft < 0) {
+            if (thetaLeft > -pi / 2 && thetaLeft < 0) {
                 frontLeftPowerFactor = Math.cos(2 * thetaLeft);
-            }else if(thetaLeft > pi/2 && thetaLeft < pi){
+            } else if (thetaLeft > pi / 2 && thetaLeft < pi) {
                 frontLeftPowerFactor = -Math.cos(2 * thetaLeft);
-            }else if(thetaLeft >= 0 && thetaLeft <= pi/2){
+            } else if (thetaLeft >= 0 && thetaLeft <= pi / 2) {
                 frontLeftPowerFactor = 1;
-            }else{
+            } else {
                 frontLeftPowerFactor = -1;
             }
 
@@ -170,12 +175,15 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 //        }
 
             double launcherSpeed;
-            if(gamepad2.right_trigger > 1){
-                launcherSpeed = 1;
-            }else{
-                launcherSpeed = gamepad2.right_trigger;
+            if (gamepad2.right_trigger > 0.5) {
+                launcherSpeed = 280;
+            } else if (gamepad2.left_trigger > 0.5) {
+                launcherSpeed = 260;
+            } else {
+                launcherSpeed = 0;
             }
-            Ring.setPower(launcherSpeed);
+
+            Ring.setVelocity(launcherSpeed, AngleUnit.DEGREES);
 
             Elevate.setPower(0.5 * gamepad2.right_stick_y);
 
