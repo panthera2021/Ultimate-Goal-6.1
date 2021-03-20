@@ -1,39 +1,12 @@
-/* Copyright (c) 2019 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.firstinspires.ftc.teamcode.Autonomous;
 
 import android.util.Log;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -42,66 +15,39 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.Came
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
+//import org.firstinspires.ftc.teamcode.Drive;
 
 import java.util.List;
 
-/**
- * This 2020-2021 OpMode illustrates the basics of using the TensorFlow Object Detection API to
- * determine the position of the Ultimate Goal game elements.
- *
- * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list.
- *
- * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
- * is explained below.
- */
-@TeleOp(name = "Detect Rings & Drop Off Wobble Goal", group = "Concept")
+@Autonomous(name = "Competition No IMU OBJ", group = "Autonomous")
 @Disabled
-public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
+public class CompetitionAutonomousNoIMUOBJ extends LinearOpMode {
     private final String TAG = getClass().getName();
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Quad";
     private static final String LABEL_SECOND_ELEMENT = "Single";
     private ElapsedTime runtime = new ElapsedTime();
 
-    /*
-     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-     * web site at https://developer.vuforia.com/license-manager.
-     *
-     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-     * random data. As an example, here is a example of a fragment of a valid key:
-     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-     * Once you've obtained a license key, copy the string from the Vuforia web site
-     * and paste it in to your code on the next line, between the double quotes.
-     */
+    private Servo Load;
+    private DcMotor Ring, Elevate, Sweep;
+
     private static final String VUFORIA_KEY =
             "AUmiib//////AAABmbrFAeBqbkd/hmTwBoU6jXFUjeYK8xAgeYu6r9ZuLmpgb4tqNl4oIhXkpbBXmCusnhPlxJ3DHEkExTnQKhvCU49Yu2jslI6vaQ+V5F21ZAbbBod6lm9zyBEpkujo7IOq2TdOaJSIdN5wW3zxrHTksfrzBuKZKRsArompruh7jrm/B4W3F/EunA8ymkVoi29W84q81XMwJyonWlS2sd3pebXvLW0YOKmA63QgdmtSpp9XVAccwiH8ND8rk7FXlIIucim1Ig5FmVPLIx88t7doptXh8uiXfHHMqXc1T1MrRvfemYaUqyg7I5lYLNjLhuRmBZO3BM/qoyjPhpMVtGNh6+z3VgaKhP7O6zI07W0mmMfO";
 
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
-    private VuforiaLocalizer vuforia;
 
-    /**
-     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
-     * Detection engine.
-     */
+    private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
 
     @Override
     public void runOpMode() {
-        // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
-        // first.
+        Load = hardwareMap.get(Servo.class, "Load");
+        Ring = hardwareMap.get(DcMotor.class, "Ring");
+        Elevate = hardwareMap.get(DcMotor.class, "Elevate");
+        Sweep = hardwareMap.get(DcMotor.class, "Sweep");
+
         initVuforia();
         initTfod();
 
-        /**
-         * Activate TensorFlow Object Detection before we wait for the start command.
-         * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-         **/
         if (tfod != null) {
             tfod.activate();
 
@@ -116,12 +62,26 @@ public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
             tfod.setZoom(1.75, 1.78);
         }
 
+        Log.i(TAG, "runOpmode: Waiting for IMU...");
+
+        DriveOBJ drive = new DriveOBJ(this);
+        drive.init();
+
+        telemetry.addLine("IMU ready");
+        telemetry.update();
+        Log.i(TAG, "runOpmode: IMU ready");
+
+        waitForStart();
+
+        drive.turnSweeper(.3, 1);
+
         runtime.reset();
         int singleVotes = 0;
         int quadVotes = 0;
         int votes = 0;
+        long startMillis = System.currentTimeMillis();
 
-        while (runtime.seconds() < 2) {
+        while (System.currentTimeMillis() - startMillis < 2000) {
             if (tfod != null) {
                 // getUpdatedRecognitions() will return null if no new information is available since
                 // the last time that call was made.
@@ -131,7 +91,7 @@ public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
                     // step through the list of recognitions and display boundary info.
                     int i = 0;
                     for (Recognition recognition : updatedRecognitions) {
-                        if (recognition.getConfidence() < 0.8) {
+                        if (recognition.getConfidence() < 0.3) {
                             continue;
                         }
                         if (recognition.getLabel() == LABEL_FIRST_ELEMENT) {
@@ -142,68 +102,99 @@ public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
                     }
                 }
             }
+            sleep(100);
         }
 
         telemetry.addData("votes (single, quad)", "%d, %d", singleVotes, quadVotes);
-        telemetry.addData("total votes", votes);
+        telemetry.addData("total votes:", votes);
         telemetry.addData("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes);
         telemetry.addLine("Waiting for IMU...");
         telemetry.update();
         Log.i(TAG, String.format("runOpMode: votes (single, quad) %d, %d", singleVotes, quadVotes));
         Log.i(TAG, String.format("total votes", votes));
         Log.i(TAG, String.format("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes));
-        Log.i(TAG, "runOpmode: Waiting for IMU...");
-
-        DriveOBJ drive = new DriveOBJ(this);
-        drive.init();
 
         telemetry.addData("votes (single, quad)", "%d, %d", singleVotes, quadVotes);
-        telemetry.addData("total votes", votes);
+        telemetry.addData("total votes:", votes);
         telemetry.addData("vote ratios (single, quad)", "%.3f, %.3f", singleVotes/(double)votes, quadVotes/(double)votes);
-        telemetry.addLine("IMU ready");
-        telemetry.update();
-        Log.i(TAG, "runOpmode: IMU ready");
 
-        /** Wait for the game to begin */
-        waitForStart();
 
         drive.runUsingEncoder();
 
         Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
 
         double SPEED = 1;
-        if(singleVotes/(double)votes > 0.5){
+        //TODO: VERIFY CORRECT SQUARES ASSIGNED TO RING STACK HEIGHT  ***** VERIFIED *****
+        if(singleVotes/(double)votes > 0.3){
             //drive to square b
-            drive.vroomVroomMonitorTicks(SPEED, 10, 10, 10);
+            drive.vroomVroomMonitorTicks(SPEED, 16, 18, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(SPEED, 0, 50, 10);
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 20, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(SPEED, -30, 30, 10);
-        }else if(quadVotes/(double)votes > 0.5){
+            drive.vroomVroomMonitorTicks(SPEED/2, -30, 32, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 12, 10);
+            drive.ceaseMotion();
+            sleep(150);
+            drive.turnSweeper(.7, 1.0);
+            sleep(1000);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED/2, 8, -33, 10);
+            //sleep(1000);  //Need to keep sweeper still until wobble goal comes to rest. Remove this when there is more code below
+        }else if(quadVotes/(double)votes > 0.3){
             //drive to square c
-            drive.vroomVroomMonitorTicks(SPEED, 14, 14, 10);
+            drive.vroomVroomMonitorTicks(SPEED, 16, 13, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(SPEED, 0, 96, 10);
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 89, 10);
+            drive.ceaseMotion();
+            sleep(150);
+            drive.turnSweeper(.7, 1.0);
+            sleep(1000);  //Need to keep sweeper still until wobble goal comes to rest. Remove this when there is more code below
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED/2, -20, -46, 4);
         }else{
             //drive to square a
-            drive.vroomVroomMonitorTicks(SPEED, 14, 14, 10);
+            drive.vroomVroomMonitorTicks(SPEED, 16, 16, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(SPEED, 0, 54, 10);
-//            drive.ceaseMotion();
-//            sleep(3000);
-//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-//            drive.vroomVroomMonitorTicks(SPEED, -16, -9, 4);
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 34, 10);
+            drive.ceaseMotion();
+            sleep(150);
+            drive.turnSweeper(.7, 1.0);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(SPEED/2, -20, -14, 4);
+            drive.vroomVroomMonitorTicks(SPEED/2, 0, 12, 4);
+            // Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            // drive.vroomVroomMonitorTicks(SPEED/2, 0, -12, 4);
+            // Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            // drive.vroomVroomMonitorTicks(SPEED/2, 0, 12, 4);
         }
         drive.ceaseMotion();
+
+        Ring.setPower(1);
+        sleep(1000);
+
+        Load.setPosition(0.67);
+        sleep(900);
+        Load.setPosition(0);
+        sleep(1400);
+
+        Load.setPosition(0.67);
+        sleep(900);
+        Load.setPosition(0);
+        sleep(1400);
+
+        Load.setPosition(0.67);
+        sleep(900);
+        Load.setPosition(0);
+        sleep(10);
+
+        drive.vroomVroomMonitorTicks(SPEED/2, 0, 4, 10);
 
         if (tfod != null) {
             tfod.shutdown();
         }
     }
 
-    /**
-     * Initialize the Vuforia localization engine.
-     */
     private void initVuforia() {
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
@@ -224,7 +215,7 @@ public class DetectRingsDropOffWobbleGoalOpMode extends LinearOpMode {
      */
     private void initTfod() {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-            "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minResultConfidence = 0.8f;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);

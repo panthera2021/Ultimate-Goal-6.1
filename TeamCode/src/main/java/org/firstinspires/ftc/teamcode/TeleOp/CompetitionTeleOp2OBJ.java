@@ -1,28 +1,24 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
-import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
 
 
-@TeleOp(name="Competition 2", group="TeleOp")
+@TeleOp(name="Competition 2 OBJ", group="TeleOp")
 //@Disabled
-public class CompetitionTeleOp2 extends LinearOpMode {
+public class CompetitionTeleOp2OBJ extends LinearOpMode {
 
     /* Declare OpMode members. */
     DcMotor leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive = null;
     private Servo Load;
     private DcMotorEx Ring;
     private DcMotor Elevate, Sweep;
-    private RevTouchSensor HopperUpperLimit, HopperLowerLimit;
 
     @Override
     public void runOpMode() {
@@ -45,13 +41,6 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 
         Ring.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        HopperUpperLimit = hardwareMap.get(RevTouchSensor.class, "HopperUpperLimitSensor");
-        HopperLowerLimit = hardwareMap.get(RevTouchSensor.class, "HopperLowerLimitSensor");
-
-//        // set the digital channel to input.
-//        HopperUpperLimit.setMode(DigitalChannel.Mode.INPUT);
-//        HopperLowerLimit.setMode(DigitalChannel.Mode.INPUT);
-
         DriveOBJ drive = new DriveOBJ(this);
         drive.init();
 
@@ -59,7 +48,7 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 
         Load.setPosition(0);
 
-        while (opModeIsActive()) {
+        while(opModeIsActive()){
             // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
             double frontRightPowerFactor, frontLeftPowerFactor, backRightPowerFactor, backLeftPowerFactor;
             double magRight = Math.hypot(gamepad1.right_stick_x, gamepad1.right_stick_y);
@@ -108,43 +97,43 @@ public class CompetitionTeleOp2 extends LinearOpMode {
             frontLeftPowerFactor = -1;
         }*/
 
-            if (thetaRight > 0 && thetaRight < pi / 2) {
+            if(thetaRight > 0 && thetaRight < pi/2){
                 frontRightPowerFactor = -Math.cos(2 * thetaRight);
-            } else if (thetaRight >= -pi && thetaRight < -pi / 2) {
+            }else if(thetaRight >= -pi && thetaRight < -pi/2){
                 frontRightPowerFactor = Math.cos(2 * thetaRight);
-            } else if (thetaRight >= pi / 2 && thetaRight <= pi) {
+            }else if(thetaRight >= pi/2 && thetaRight <= pi){
                 frontRightPowerFactor = 1;
-            } else {
+            }else{
                 frontRightPowerFactor = -1;
             }
 
-            if (thetaLeft > 0 && thetaLeft < pi / 2) {
+            if(thetaLeft > 0 && thetaLeft < pi/2) {
                 backLeftPowerFactor = -Math.cos(2 * thetaLeft);
-            } else if (thetaLeft >= -pi && thetaLeft < -pi / 2) {
+            }else if(thetaLeft >= -pi && thetaLeft < -pi/2){
                 backLeftPowerFactor = Math.cos(2 * thetaLeft);
-            } else if (thetaLeft >= pi / 2 && thetaLeft <= pi) {
+            }else if(thetaLeft >= pi/2 && thetaLeft <= pi){
                 backLeftPowerFactor = 1;
-            } else {
+            }else{
                 backLeftPowerFactor = -1;
             }
 
-            if (thetaRight > -pi / 2 && thetaRight < 0) {
+            if(thetaRight > -pi/2 && thetaRight < 0) {
                 backRightPowerFactor = Math.cos(2 * thetaRight);
-            } else if (thetaRight > pi / 2 && thetaRight < pi) {
+            }else if(thetaRight > pi/2 && thetaRight < pi){
                 backRightPowerFactor = -Math.cos(2 * thetaRight);
-            } else if (thetaRight >= 0 && thetaRight <= pi / 2) {
+            }else if(thetaRight >= 0 && thetaRight <= pi/2){
                 backRightPowerFactor = 1;
-            } else {
+            }else{
                 backRightPowerFactor = -1;
             }
 
-            if (thetaLeft > -pi / 2 && thetaLeft < 0) {
+            if(thetaLeft > -pi/2 && thetaLeft < 0) {
                 frontLeftPowerFactor = Math.cos(2 * thetaLeft);
-            } else if (thetaLeft > pi / 2 && thetaLeft < pi) {
+            }else if(thetaLeft > pi/2 && thetaLeft < pi){
                 frontLeftPowerFactor = -Math.cos(2 * thetaLeft);
-            } else if (thetaLeft >= 0 && thetaLeft <= pi / 2) {
+            }else if(thetaLeft >= 0 && thetaLeft <= pi/2){
                 frontLeftPowerFactor = 1;
-            } else {
+            }else{
                 frontLeftPowerFactor = -1;
             }
 
@@ -185,34 +174,17 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 //        }
 
             double launcherSpeed;
-            if (gamepad2.right_trigger > 0.5) {
+            if(gamepad2.right_trigger > 0.5){
                 launcherSpeed = 280;
-            } else if (gamepad2.left_trigger > 0.5) {
+            }else if(gamepad2.left_trigger > 0.5){
                 launcherSpeed = 260;
-            } else {
+            }else{
                 launcherSpeed = 0;
             }
 
             Ring.setVelocity(launcherSpeed, AngleUnit.DEGREES);
 
-            if(HopperLowerLimit.isPressed()){
-                if(gamepad2.right_stick_y > 0){
-                    Elevate.setPower(0);
-                }else{
-                    Elevate.setPower(0.5 * gamepad2.right_stick_y);
-                }
-            }else if(HopperUpperLimit.isPressed()){
-                if(gamepad2.right_stick_y < 0){
-                    Elevate.setPower(0);
-                }else{
-                    Elevate.setPower(0.5 * gamepad2.right_stick_y);
-                }
-            }else{
-                Elevate.setPower(0.5 * gamepad2.right_stick_y);
-            }
-
-            telemetry.addData("runOpMode: ", "HopperLowerLimit State: %s | HopperUpperLimit State: %s", HopperLowerLimit.isPressed(), HopperUpperLimit.isPressed());
-            telemetry.addData("runOpMode: ", "gamepad right stick y: %.2f", gamepad2.right_stick_y);
+            Elevate.setPower(0.5 * gamepad2.right_stick_y);
 
             if (gamepad2.x) {
                 Sweep.setPower(-1);
@@ -220,11 +192,10 @@ public class CompetitionTeleOp2 extends LinearOpMode {
             if (gamepad2.y) {
                 Sweep.setPower(0);
             }
-            if (gamepad2.a && HopperUpperLimit.isPressed()) {
+            if (gamepad2.a) {
                 Load.setPosition(0.67);
                 sleep(900);
                 Load.setPosition(0);
-                sleep(900);
             }
             if (gamepad2.b) {
                 Sweep.setPower(1);

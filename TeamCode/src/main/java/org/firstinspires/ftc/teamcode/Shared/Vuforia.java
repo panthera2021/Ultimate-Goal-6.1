@@ -66,6 +66,8 @@ public class Vuforia {
     // Class Members
     private OpenGLMatrix lastLocation = null;
     private VuforiaLocalizer vuforia = null;
+    private VuforiaTrackables targetsUltimateGoal = null;
+    private List<VuforiaTrackable> allTrackables = null;
 
     /**
      * This is the webcam we are to use. As with other hardware devices such as motors and
@@ -113,7 +115,7 @@ public class Vuforia {
 
         // Load the data sets for the trackable objects. These particular data
         // sets are stored in the 'assets' part of our application.
-        VuforiaTrackables targetsUltimateGoal = this.vuforia.loadTrackablesFromAsset("UltimateGoal");
+        targetsUltimateGoal = this.vuforia.loadTrackablesFromAsset("UltimateGoal");
         VuforiaTrackable blueTowerGoalTarget = targetsUltimateGoal.get(0);
         blueTowerGoalTarget.setName("Blue Tower Goal Target");
         VuforiaTrackable redTowerGoalTarget = targetsUltimateGoal.get(1);
@@ -126,7 +128,7 @@ public class Vuforia {
         frontWallTarget.setName("Front Wall Target");
 
         // For convenience, gather together all the trackable objects in one easily-iterable collection */
-        List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
+        allTrackables = new ArrayList<VuforiaTrackable>();
         allTrackables.addAll(targetsUltimateGoal);
 
         /**
@@ -226,26 +228,59 @@ public class Vuforia {
 
         // Check all the trackable targets to see which one (if any) is visible.
         targetVisible = false;
-        for (VuforiaTrackable trackable : allTrackables) {
-            if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
-                opMode.telemetry.addData("Visible Target", trackable.getName());
-                targetVisible = true;
+        while(opMode.opModeIsActive() && !targetVisible) {
+            for (VuforiaTrackable trackable : allTrackables) {
+                if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
+                    opMode.telemetry.addData("Visible Target", trackable.getName());
+                    targetVisible = true;
 
-                // getUpdatedRobotLocation() will return null if no new information is available since
-                // the last time that call was made, or if the trackable is not currently visible.
-                OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
-                if (robotLocationTransform != null) {
-                    lastLocation = robotLocationTransform;
+                    // getUpdatedRobotLocation() will return null if no new information is available since
+                    // the last time that call was made, or if the trackable is not currently visible.
+                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+                    if (robotLocationTransform != null) {
+                        lastLocation = robotLocationTransform;
+                    }
+                    break;
                 }
-                break;
+            }
+            if (targetVisible) {
+                VectorF translation = lastLocation.getTranslation();
+                Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+
+                // Disable Tracking when we are done;
+                targetsUltimateGoal.deactivate();
+
+                return new RobotPosition(translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, rotation.thirdAngle);
             }
         }
-        VectorF translation = lastLocation.getTranslation();
-        Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
-
-        // Disable Tracking when we are done;
         targetsUltimateGoal.deactivate();
-
-        return new RobotPosition(translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, rotation.thirdAngle);
+        return null;
     }
+
+    public void shootPowerShots(){
+        init();
+        RobotPosition robotPosition = getRobotPosition(targetsUltimateGoal, allTrackables);
+
+
+        if(robotPosition == null){
+            opMode.telemetry.addData("shootPowerShots: ", "robotPosition is null");
+            opMode.telemetry.update();
+            return;
+        }
+
+        opMode.telemetry.addData("shootPowerShots: robotPosition: ",
+                "x: %.1f | y: %.1f | h: %.1f", robotPosition.xPosition, robotPosition.yPosition, robotPosition.heading);
+
+        Drive drive = new Drive(opMode);
+        drive.init();
+
+        drive.stopResetEncoder();
+        drive.runUsingEncoder();
+
+        drive.vroomVroomMonitorTicks(0.5, LEFT_POWER_SHOT.x - robotPosition.xPosition, LEFT_POWER_SHOT.y - robotPosition.yPosition, 10);
+
+        drive.ceaseMotion();
+
+    }
+
 }

@@ -7,9 +7,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -22,7 +20,7 @@ import org.firstinspires.ftc.teamcode.Shared.Drive;
 
 import java.util.List;
 
-@Autonomous(name = "Competition", group = "Autonomous")
+@Autonomous(name = "CompetitionAS", group = "Autonomous")
 //@Disabled
 public class CompetitionAutonomous extends LinearOpMode {
     private final String TAG = getClass().getName();
@@ -175,7 +173,7 @@ public class CompetitionAutonomous extends LinearOpMode {
         }
         drive.ceaseMotion();
 
-        Ring.setVelocity(554040, AngleUnit.DEGREES);
+        Ring.setVelocity(280, AngleUnit.DEGREES);
         //Ring.setPower(.95);
         sleep(1000);
 
