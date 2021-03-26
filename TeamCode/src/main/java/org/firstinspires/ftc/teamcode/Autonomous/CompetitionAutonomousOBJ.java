@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 
 import android.util.Log;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,7 +23,7 @@ import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
 import java.util.List;
 
 @Autonomous(name = "Competition OBJ", group = "Autonomous")
-//@Disabled
+@Disabled
 public class CompetitionAutonomousOBJ extends LinearOpMode {
     private final String TAG = getClass().getName();
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";

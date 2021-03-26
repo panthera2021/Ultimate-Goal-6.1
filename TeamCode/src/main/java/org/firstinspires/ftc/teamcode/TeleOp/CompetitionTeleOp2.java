@@ -12,6 +12,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 @TeleOp(name="Competition 2", group="TeleOp")
 //@Disabled
@@ -20,8 +22,8 @@ public class CompetitionTeleOp2 extends LinearOpMode {
     /* Declare OpMode members. */
     DcMotor leftFrontDrive, rightFrontDrive, leftBackDrive, rightBackDrive = null;
     private Servo Load;
-    private DcMotorEx Ring;
-    private DcMotor Elevate, Sweep;
+    private DcMotorEx Ring, Sweep;
+    private DcMotor Elevate;
     private RevTouchSensor HopperUpperLimit, HopperLowerLimit;
 
     @Override
@@ -41,12 +43,16 @@ public class CompetitionTeleOp2 extends LinearOpMode {
         Load = hardwareMap.get(Servo.class, "Load");
         Ring = hardwareMap.get(DcMotorEx.class, "Ring");
         Elevate = hardwareMap.get(DcMotor.class, "Elevate");
-        Sweep = hardwareMap.get(DcMotor.class, "Sweep");
+        Sweep = hardwareMap.get(DcMotorEx.class, "Sweep");
 
         Ring.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        Sweep.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         HopperUpperLimit = hardwareMap.get(RevTouchSensor.class, "HopperUpperLimitSensor");
         HopperLowerLimit = hardwareMap.get(RevTouchSensor.class, "HopperLowerLimitSensor");
+
+        final AtomicBoolean isSweeperThreadInUse = new AtomicBoolean();
+        isSweeperThreadInUse.set(false);
 
 //        // set the digital channel to input.
 //        HopperUpperLimit.setMode(DigitalChannel.Mode.INPUT);
@@ -178,10 +184,10 @@ public class CompetitionTeleOp2 extends LinearOpMode {
 //            rightFrontDrive.setPower(0.5);
 //            rightBackDrive.setPower(0.5);
 //        }else{
-            leftFrontDrive.setPower(frontLeftPowerFactor * magLeft);
-            rightFrontDrive.setPower(-frontRightPowerFactor * magRight);
-            leftBackDrive.setPower(backLeftPowerFactor * magLeft);
-            rightBackDrive.setPower(-backRightPowerFactor * magRight);
+            leftFrontDrive.setPower((frontLeftPowerFactor * magLeft)*(frontLeftPowerFactor * magLeft));
+            rightFrontDrive.setPower(-(frontRightPowerFactor * magRight)*(frontRightPowerFactor * magRight));
+            leftBackDrive.setPower((backLeftPowerFactor * magLeft)*(backLeftPowerFactor * magLeft));
+            rightBackDrive.setPower(-(backRightPowerFactor * magRight)*(backRightPowerFactor * magRight));
 //        }
 
             double launcherSpeed;
@@ -215,19 +221,26 @@ public class CompetitionTeleOp2 extends LinearOpMode {
             telemetry.addData("runOpMode: ", "gamepad right stick y: %.2f", gamepad2.right_stick_y);
 
             if (gamepad2.x) {
-                Sweep.setPower(-1);
+                Sweep.setVelocity(-280, AngleUnit.DEGREES);
+            }else if (gamepad2.y) {
+                Sweep.setVelocity(0, AngleUnit.DEGREES);
+            }else if (gamepad2.b) {
+                Sweep.setVelocity(280, AngleUnit.DEGREES);
             }
-            if (gamepad2.y) {
-                Sweep.setPower(0);
-            }
-            if (gamepad2.a && HopperUpperLimit.isPressed()) {
-                Load.setPosition(0.67);
-                sleep(900);
-                Load.setPosition(0);
-                sleep(900);
-            }
-            if (gamepad2.b) {
-                Sweep.setPower(1);
+
+            Thread shooterThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Load.setPosition(0.67);
+                    sleep(900);
+                    Load.setPosition(0);
+                    sleep(1000);
+                    isSweeperThreadInUse.set(false);
+                }
+            });
+
+            if (gamepad2.a && HopperUpperLimit.isPressed() && isSweeperThreadInUse.compareAndSet(false, true)) {
+                shooterThread.start();
             }
 
             telemetry.addData("IMU Orientation: ", drive.getImuDeltaAngle());
