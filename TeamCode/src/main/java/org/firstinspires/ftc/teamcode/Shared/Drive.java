@@ -26,10 +26,10 @@ public class Drive {
     public HardwareMap hardwareMap; // will be set in OpModeManager.runActiveOpMode
     private ElapsedTime runtime = new ElapsedTime();
     static final double     COUNTS_PER_MOTOR_REV    = 28 ;    // eg: TETRIX Motor Encoder
-    //static final double     DRIVE_GEAR_REDUCTION    = 40 ;     // This is < 1.0 if geared UP //For test robot
-    static final double     DRIVE_GEAR_REDUCTION    = 19.2 ;     // This is < 1.0 if geared UP //For competition robot
-    //static final double     WHEEL_DIAMETER_INCHES   = 3 ;     // For figuring circumference  //For test robot
-    static final double     WHEEL_DIAMETER_INCHES   = 3.75 ;     // For figuring circumference //For competition robot
+    static final double     DRIVE_GEAR_REDUCTION    = 40 ;     // This is < 1.0 if geared UP //For test robot
+    //static final double     DRIVE_GEAR_REDUCTION    = 19.2 ;     // This is < 1.0 if geared UP //For competition robot
+    static final double     WHEEL_DIAMETER_INCHES   = 3 ;     // For figuring circumference  //For test robot
+    //static final double     WHEEL_DIAMETER_INCHES   = 3.75 ;     // For figuring circumference //For competition robot
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
     static final double     DRIVE_SPEED             = 1;
@@ -63,17 +63,17 @@ public class Drive {
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
-//        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "left_front_drive");  //For test robot
-//        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "right_front_drive");
-//        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "left_back_drive");
-//        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "right_back_drive");
-        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "LM DT");  //For Competition robot
-        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "RM DT");
-        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "LR DT");
-        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "RR DT");
+        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "left_front_drive");  //For test robot
+        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "right_front_drive");
+        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "left_back_drive");
+        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "right_back_drive");
+//        leftFrontDrive  = opMode.hardwareMap.get(DcMotor.class, "LM DT");  //For Competition robot
+//        rightFrontDrive = opMode.hardwareMap.get(DcMotor.class, "RM DT");
+//        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "LR DT");
+//        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "RR DT");
 
-        Sweep = hardwareMap.get(DcMotor.class, "Sweep");  //For Competition robot
-        Sweep.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //Sweep = hardwareMap.get(DcMotor.class, "Sweep");  //For Competition robot
+        //Sweep.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -120,11 +120,11 @@ public class Drive {
         Log.i(TAG, "init: IMU calibration status: " + imu.getCalibrationStatus());
         //Set IMU calibration angle to average of 10 readings
         mImuCalibrationAngle = 0;
-        for(int i = 0; i < 10; i++){
-            mImuCalibrationAngle += getImuAngle();
-            opMode.sleep(30);
-        }
-        mImuCalibrationAngle /= 10;
+//        for(int i = 0; i < 10; i++){
+//            mImuCalibrationAngle += getImuAngle();
+//            opMode.sleep(30);
+//        }
+//        mImuCalibrationAngle /= 10;
     }
 
     public void vroom_vroom (double magRight, double thetaRight, double magLeft, double thetaLeft) {
@@ -254,44 +254,6 @@ public class Drive {
         setMotorPowersPhi(speedsPhi);
     }
 
-    public void vroomVroomWaitForEncoders(double magRight, double thetaRight, double magLeft, double thetaLeft, double timeout){
-        vroom_vroom(magRight, thetaRight, magLeft, thetaLeft);
-        // keep looping while we are still active, and there is time left, and both motors are running.
-        // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
-        // its target position, the motion will stop.  This is "safer" in the event that the robot will
-        // always end the motion as soon as possible.
-        // However, if you require that BOTH motors have finished their moves before the robot continues
-        // onto the next step, use (isBusy() || isBusy()) in the loop test.
-        boolean isAccelerating = true, isDecelerating = false;
-        double accelerationStartTime = runtime.seconds();
-        while (opMode.opModeIsActive() &&
-                (runtime.seconds() < timeout) &&
-                (leftFrontDrive.isBusy() || leftBackDrive.isBusy() || rightFrontDrive.isBusy() || rightBackDrive.isBusy())) {
-
-            if(isAccelerating){
-                setMotorPowers(Math.max(getFractionalPosition(leftFrontDrive)*magLeft*20, 0.2), Math.max(getFractionalPosition(rightFrontDrive)*magRight*20, 0.1));
-                if(getFractionalPosition(leftFrontDrive) >= 0.05){
-                    isAccelerating = false;
-                }
-            }else if(!isDecelerating){
-                setMotorPowers(magLeft, magRight);
-                if(getFractionalPosition(leftFrontDrive) >= 0.95){
-                    isDecelerating = true;
-                }
-            }else{
-                setMotorPowers(Math.max((1-getFractionalPosition(leftFrontDrive))*magLeft*20, 0.2),
-                        Math.max((1-getFractionalPosition(rightFrontDrive))*magRight*20, 0.2));
-            }
-
-            // Display it for the driver.
-            telemetry.addData("Path1",  "Running to %7d :%7d", motorTargetPositions.get(leftFrontDrive),  motorTargetPositions.get(rightFrontDrive));
-            telemetry.addData("Path2",  "Running at %7d :%7d",
-                    leftFrontDrive.getCurrentPosition(),
-                    rightFrontDrive.getCurrentPosition());
-            telemetry.addData("getFractionalPosition", getFractionalPosition(leftFrontDrive));
-            telemetry.update();
-        }
-    }
 
     //               ^
     //               |  Y axis
@@ -315,9 +277,10 @@ public class Drive {
         double inchesTraveledX = 0, inchesTraveledY = 0, inchesTraveledTotal = 0, rotationInchesTotal = 0;
         double cycleMillisNow = 0, cycleMillisPrior = System.currentTimeMillis(), cycleMillisDelta, startMillis = System.currentTimeMillis();
         //vroom_vroom(speed, theta, speed, theta);
+        getImuAngle();
         vroom_vroom_phi(speed, theta);
         adjustThetaInit();
-        setTargetAngle(mImuCalibrationAngle);
+        //setTargetAngle(mImuCalibrationAngle);
         while (opMode.opModeIsActive() && runtime.seconds() < timeout && inchesTraveledTotal <= magnitude){
             int tickCountNowLeftFront = leftFrontDrive.getCurrentPosition();
             int tickCountNowLeftBack = leftBackDrive.getCurrentPosition();
@@ -377,22 +340,6 @@ public class Drive {
         }
     }
 
-    public void turnOnRunToPosition(){
-        // Turn On RUN_TO_POSITION
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-    }
-
-    public void turnOffRunToPosition(){
-        // Turn off RUN_TO_POSITION
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
     public void stopResetEncoder(){
         leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -423,25 +370,6 @@ public class Drive {
         rightBackDrive.setPower(0);
     }
 
-    public void setNewTargetPosition(double leftInches, double rightInches){
-
-        // Determine new target position, and pass to motor controller
-        motorInitialPositions.put(leftFrontDrive, leftFrontDrive.getCurrentPosition());
-        motorInitialPositions.put(leftBackDrive, leftBackDrive.getCurrentPosition());
-        motorInitialPositions.put(rightFrontDrive, rightFrontDrive.getCurrentPosition());
-        motorInitialPositions.put(rightBackDrive, rightBackDrive.getCurrentPosition());
-
-        motorTargetPositions.put(leftFrontDrive, motorInitialPositions.get(leftFrontDrive) + (int)(leftInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(leftBackDrive, motorInitialPositions.get(leftBackDrive) + (int)(leftInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(rightFrontDrive, motorInitialPositions.get(rightFrontDrive) + (int)(rightInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(rightBackDrive, motorInitialPositions.get(rightBackDrive) + (int)(rightInches * COUNTS_PER_INCH));
-
-        leftFrontDrive.setTargetPosition(motorTargetPositions.get(leftFrontDrive));
-        leftBackDrive.setTargetPosition(motorTargetPositions.get(leftBackDrive));
-        rightFrontDrive.setTargetPosition(motorTargetPositions.get(rightFrontDrive));
-        rightBackDrive.setTargetPosition(motorTargetPositions.get(rightBackDrive));
-    }
-
     public double getFractionalPosition(DcMotor motor){
         return ((double)motor.getCurrentPosition() - motorInitialPositions.get(motor)) / (motorTargetPositions.get(motor) - motorInitialPositions.get(motor));
     }
@@ -463,7 +391,7 @@ public class Drive {
     private double thetaErrorSum;
     public void adjustThetaInit() { thetaErrorSum = 0; }
     public void adjustTheta(double targetX, double targetY, double targetSpeed, double nowX, double nowY){
-        if(nowX == 0 && nowY == 0){
+        if(nowX == 0 && nowY == 0 && mTargetAngle == 0){
             Log.i("Drive", "adjustTheta: nowX and nowY are both still zero so not computing an adjustment factor yet");
             return;
         }
@@ -651,11 +579,6 @@ public class Drive {
         double powerCorrection = getPowerCorrection();
         double adjustedLeftFrontSpeed, adjustedLeftBackSpeed, adjustedRightFrontSpeed, adjustedRightBackSpeed;
 
-//        motorPowerFactors.put(leftFrontDrive, leftFrontPowerFactor);
-//        motorPowerFactors.put(leftBackDrive, leftBackPowerFactor);
-//        motorPowerFactors.put(rightFrontDrive, rightFrontPowerFactor);
-//        motorPowerFactors.put(rightBackDrive, rightBackPowerFactor);
-
         if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
             adjustedLeftFrontSpeed = 1;
         }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection < -1) {
@@ -663,16 +586,6 @@ public class Drive {
         }else{
             adjustedLeftFrontSpeed = motorPowerFactors.get(leftFrontDrive) * targetSpeed - powerCorrection;
         }
-//        if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection < -1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
             adjustedLeftBackSpeed = 1;
@@ -681,16 +594,6 @@ public class Drive {
         }else{
             adjustedLeftBackSpeed = motorPowerFactors.get(leftBackDrive) * targetSpeed - powerCorrection;
         }
-//        if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection < -1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
             adjustedRightFrontSpeed = 1;
@@ -699,34 +602,14 @@ public class Drive {
         }else{
             adjustedRightFrontSpeed = motorPowerFactors.get(rightFrontDrive) * targetSpeed + powerCorrection;
         }
-//        if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
             adjustedRightBackSpeed = 1;
         }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1) {
             adjustedRightBackSpeed = -1;
         }else{
-            adjustedRightBackSpeed = motorPowerFactors.get(rightFrontDrive) * targetSpeed + powerCorrection;
+            adjustedRightBackSpeed = motorPowerFactors.get(rightBackDrive) * targetSpeed + powerCorrection;
         }
-//        if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection + 1;
-//        }
 
         mPriorImuAngle = mCurrentImuAngle;
         mPriorAdjustedAngle = mAdjustedAngle;

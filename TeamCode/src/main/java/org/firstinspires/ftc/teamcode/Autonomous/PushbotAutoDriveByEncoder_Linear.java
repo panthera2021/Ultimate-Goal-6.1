@@ -34,6 +34,7 @@ import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.Shared.Drive;
 import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
 import org.firstinspires.ftc.teamcode.Shared.Vuforia;
 
@@ -80,10 +81,10 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
         //Drive2 drive = new Drive2(this);
         //drive.init();
 
-//        Drive drive = new Drive(this);
-//        drive.init();
+        final Drive drive = new Drive(this);
+        drive.init();
 
-        Vuforia vuforia = new Vuforia(this);
+        //Vuforia vuforia = new Vuforia(this);
 
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Status", "Resetting Encoders");    //
@@ -112,13 +113,36 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
             //drive.setNewTargetPosition(32, 32);
             //drive.vroom_vroom(.75, Math.PI/2, .75, Math.PI/2, 10.0);
 
-            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            //drive.vroomVroomMonitorTicks(.5, 0, 4, 10);
-//            drive.ceaseMotion();
-//            sleep(2000);
 
-//            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-//            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
+//            Thread rotate = new Thread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+//                    drive.vroomVroomMonitorTicks(0, 10, 10, 8);
+//                }
+//            });
+//
+//            rotate.start();
+//            sleep(1000);
+//            for(int i = 1; i < 121; i++){
+//                sleep(150);
+//                Log.i("DriveByEncoderOpMode", i+"");
+//                drive.setTargetAngle(i*3);
+//            }
+
+
+            //drive.ceaseMotion();
+            //sleep(2000);
+
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, -24, -24, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 24, -24, 10);
+            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
+
 //            drive.ceaseMotion();
 //            sleep(2000);
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
@@ -131,8 +155,8 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 //            sleep(2000);
 //            drive.vroomVroomMonitorTicks(1, -48, 0, 10);
 
-            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            vuforia.shootPowerShots();
+            //Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
+            //vuforia.shootPowerShots();
 
 //            drive.vroomVroomMonitorTicks(1, 12, 12, 10);
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
@@ -143,8 +167,8 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 //            drive.vroomVroomMonitorTicks(2/3, 0, 1, 10);
 //            Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
 //            drive.vroomVroomMonitorTicks(1/3, 0, 1, 10);
-            //drive.ceaseMotion();
-            sleep(2000);
+            drive.ceaseMotion();
+            sleep(1000);
             if(1+1 == 2) return;
             //each block individually from starting position
                 //block 1
