@@ -83,12 +83,11 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         final Drive drive = new Drive(this);
         drive.init();
+        //drive.setTargetAngle(0);
 
         //Vuforia vuforia = new Vuforia(this);
 
         // Send telemetry message to signify robot waiting;
-        telemetry.addData("Status", "Resetting Encoders");    //
-        telemetry.update();
 
 //        drive.stopResetEncoder();
 //        drive.runUsingEncoder();
@@ -135,13 +134,13 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
             //sleep(2000);
 
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(1, -24, -24, 10);
+            drive.vroomVroomMonitorTicks(.5, -24, -24, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
+            drive.vroomVroomMonitorTicks(.5, 0, 24, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(1, 24, -24, 10);
+            drive.vroomVroomMonitorTicks(.5, 24, -24, 10);
             Log.i("DriveByEncoderOpMode", "************************ xyzabc *****************************");
-            drive.vroomVroomMonitorTicks(1, 0, 24, 10);
+            drive.vroomVroomMonitorTicks(.5, 0, 24, 10);
 
 //            drive.ceaseMotion();
 //            sleep(2000);

@@ -8,13 +8,16 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
+import java.io.File;
 import java.util.HashMap;
 
 public class Drive {
@@ -38,13 +41,16 @@ public class Drive {
     HashMap <DcMotor, Integer> motorInitialPositions, motorTargetPositions;
     HashMap <DcMotor, Double> motorPowerFactors;
 
-    BNO055IMU               imu;
+    static BNO055IMU        imu = null;
+    static double imuSecondOpModeAdjustment = 0;
     Orientation lastAngles = new Orientation();
 
     public Drive(LinearOpMode _opMode){
         opMode = _opMode;
         hardwareMap = opMode.hardwareMap;
         telemetry = opMode.telemetry;
+
+        motorPowerFactors = new HashMap<>();
     }
 
     public void init() {
@@ -52,10 +58,6 @@ public class Drive {
          * The init() method of the hardware class does all the work here
          */
         //robot.init(hardwareMap);
-
-        motorInitialPositions = new HashMap<>();
-        motorTargetPositions = new HashMap<>();
-        motorPowerFactors = new HashMap<>();
 
         // Send telemetry message to signify robot waiting;
         //telemetry.addData("Say", "Hello Driver");
@@ -78,53 +80,37 @@ public class Drive {
         leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        //parameters.mode                = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
+        if(imu == null) {
+            telemetry.addLine("Drive Init: IMU Null; Initializing");
+            BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+            //parameters.mode                = BNO055IMU.SensorMode.GYRONLY;
+            parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+            //parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+            parameters.loggingEnabled = true;
+            parameters.loggingTag = "IMU";
+            //parameters.calibrationDataFile = "IMUCalibration.json"; // see the calibration sample opmode
 
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+            // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+            // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+            // and named "imu".
+            imu = hardwareMap.get(BNO055IMU.class, "imu");
 
-//        byte AXIS_MAP_CONFIG_BYTE = 0x6; //This is what to write to the AXIS_MAP_CONFIG register to swap x and z axes
-//        byte AXIS_MAP_SIGN_BYTE = 0x1; //This is what to write to the AXIS_MAP_SIGN register to negate the z axis
-//
-//        //Need to be in CONFIG mode to write to registers
-//        imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal);
-//
-//        opMode.sleep(100); //Changing modes requires a delay before doing anything else
-//
-//        //Write to the AXIS_MAP_CONFIG register
-//        imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE);
-//
-//        //Write to the AXIS_MAP_SIGN register
-//        //imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE);
-//
-//        //Need to change back into the IMU mode to use the gyro
-//        imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal);
-//
-//        opMode.sleep(100); //Changing modes again requires a delay
-//
-//        Log.i(TAG, String.format("IMU Register OPR_MODE: ", imu.read(BNO055IMU.Register.OPR_MODE, 1)));
-        imu.initialize(parameters);
-        // make sure the imu gyro is calibrated before continuing.
-        while (!opMode.isStopRequested() && !imu.isGyroCalibrated()) {
-            opMode.sleep(50);
-            opMode.idle();
+            imu.initialize(parameters);
+            // make sure the imu gyro is calibrated before continuing.
+            while (!opMode.isStopRequested() && !imu.isGyroCalibrated()) {
+                opMode.sleep(50);
+                opMode.idle();
+            }
+            imuSecondOpModeAdjustment = 0;
+        } else {
+            opMode.telemetry.addLine("Drive Init: IMU already initialized");
+            imuSecondOpModeAdjustment = -2.75;
         }
+        setTargetAngle(0);
+        opMode.telemetry.addData("Drive: init: IMU: ", "status: %s, calibr: %s", imu.getSystemStatus().toString(), imu.getCalibrationStatus().toString());
+        telemetry.update();
         Log.i(TAG, "init: IMU status: " + imu.getSystemStatus());
         Log.i(TAG, "init: IMU calibration status: " + imu.getCalibrationStatus());
-        //Set IMU calibration angle to average of 10 readings
-        mImuCalibrationAngle = 0;
-//        for(int i = 0; i < 10; i++){
-//            mImuCalibrationAngle += getImuAngle();
-//            opMode.sleep(30);
-//        }
-//        mImuCalibrationAngle /= 10;
     }
 
     public void vroom_vroom (double magRight, double thetaRight, double magLeft, double thetaLeft) {
@@ -370,10 +356,6 @@ public class Drive {
         rightBackDrive.setPower(0);
     }
 
-    public double getFractionalPosition(DcMotor motor){
-        return ((double)motor.getCurrentPosition() - motorInitialPositions.get(motor)) / (motorTargetPositions.get(motor) - motorInitialPositions.get(motor));
-    }
-
     public void setMotorPowers(double magLeft, double magRight){
         leftFrontDrive.setPower(motorPowerFactors.get(leftFrontDrive) * magLeft);
         rightFrontDrive.setPower(motorPowerFactors.get(leftBackDrive) * magRight);
@@ -419,7 +401,7 @@ public class Drive {
     double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle, mImuCalibrationAngle;
 
     public void setTargetAngle(double targetAngle){
-        mPriorImuAngle = mTargetAngle = targetAngle;
+        mPriorImuAngle = mTargetAngle = targetAngle + imuSecondOpModeAdjustment;
     }
 
     public double getImuAngle(){
@@ -429,6 +411,7 @@ public class Drive {
         // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
 
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZXY, AngleUnit.DEGREES);
+        double adjustedHeading = angles.firstAngle + imuSecondOpModeAdjustment;
         telemetry.addData("IMU Angles (X/Y/Z)", "%.1f / %.1f / %.1f", angles.secondAngle, angles.thirdAngle, angles.firstAngle);
         telemetry.update();
         Log.i(TAG, String.format("getImuAngle: IMU Angles (X/Y/Z): %.1f / %.1f / %.1f", angles.secondAngle, angles.thirdAngle, angles.firstAngle));
