@@ -35,6 +35,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.Shared.Drive;
+import org.firstinspires.ftc.teamcode.Shared.Drive2;
 import org.firstinspires.ftc.teamcode.Shared.DriveOBJ;
 import org.firstinspires.ftc.teamcode.Shared.Vuforia;
 
@@ -81,7 +82,7 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
         //Drive2 drive = new Drive2(this);
         //drive.init();
 
-        final Drive drive = new Drive(this);
+        final Drive2 drive = new Drive2(this);
         drive.init();
         //drive.setTargetAngle(0);
 

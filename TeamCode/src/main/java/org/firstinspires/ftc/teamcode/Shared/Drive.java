@@ -81,11 +81,12 @@ public class Drive {
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
         if(imu == null) {
-            telemetry.addLine("Drive Init: IMU Null; Initializing");
+            telemetry.log().add("Drive Init: IMU Null; Initializing");
+            telemetry.update();
             BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
             //parameters.mode                = BNO055IMU.SensorMode.GYRONLY;
             parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-            //parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+            parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
             parameters.loggingEnabled = true;
             parameters.loggingTag = "IMU";
             //parameters.calibrationDataFile = "IMUCalibration.json"; // see the calibration sample opmode
@@ -101,13 +102,28 @@ public class Drive {
                 opMode.sleep(50);
                 opMode.idle();
             }
+            telemetry.log().add("Drive: init: Gyro calibrated");
+            telemetry.update();
+
+            // make sure the imu gyro is calibrated before continuing.
+            long startMillis = System.currentTimeMillis();
+            while (!opMode.isStopRequested() && !imu.isAccelerometerCalibrated() && System.currentTimeMillis() - startMillis < 5000) {
+                opMode.sleep(50);
+                opMode.idle();
+            }
+            if(System.currentTimeMillis() - startMillis > 5000)
+                telemetry.log().add("Drive: init: Accel calibration timed out");
+            else
+                telemetry.log().add("Drive: init: Accel calibrated");
+            telemetry.update();
             imuSecondOpModeAdjustment = 0;
         } else {
-            opMode.telemetry.addLine("Drive Init: IMU already initialized");
-            imuSecondOpModeAdjustment = -2.75;
+            opMode.telemetry.log().add("Drive Init: IMU already initialized");
+//            imuSecondOpModeAdjustment = -2.75;
+            imuSecondOpModeAdjustment = getImuAngle();
         }
         setTargetAngle(0);
-        opMode.telemetry.addData("Drive: init: IMU: ", "status: %s, calibr: %s", imu.getSystemStatus().toString(), imu.getCalibrationStatus().toString());
+        opMode.telemetry.log().add("Drive: init: IMU: status: %s, calibr: %s", imu.getSystemStatus().toString(), imu.getCalibrationStatus().toString());
         telemetry.update();
         Log.i(TAG, "init: IMU status: " + imu.getSystemStatus());
         Log.i(TAG, "init: IMU calibration status: " + imu.getCalibrationStatus());

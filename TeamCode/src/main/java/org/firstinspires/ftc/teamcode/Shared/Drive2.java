@@ -8,13 +8,16 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
+import java.io.File;
 import java.util.HashMap;
 
 public class Drive2 {
@@ -38,13 +41,16 @@ public class Drive2 {
     HashMap <DcMotor, Integer> motorInitialPositions, motorTargetPositions;
     HashMap <DcMotor, Double> motorPowerFactors;
 
-    BNO055IMU               imu;
+    static BNO055IMU        imu = null;
+    static double imuSecondOpModeAdjustment = 0;
     Orientation lastAngles = new Orientation();
 
     public Drive2(LinearOpMode _opMode){
         opMode = _opMode;
         hardwareMap = opMode.hardwareMap;
         telemetry = opMode.telemetry;
+
+        motorPowerFactors = new HashMap<>();
     }
 
     public void init() {
@@ -52,10 +58,6 @@ public class Drive2 {
          * The init() method of the hardware class does all the work here
          */
         //robot.init(hardwareMap);
-
-        motorInitialPositions = new HashMap<>();
-        motorTargetPositions = new HashMap<>();
-        motorPowerFactors = new HashMap<>();
 
         // Send telemetry message to signify robot waiting;
         //telemetry.addData("Say", "Hello Driver");
@@ -72,59 +74,60 @@ public class Drive2 {
 //        leftBackDrive = opMode.hardwareMap.get(DcMotor.class, "LR DT");
 //        rightBackDrive = opMode.hardwareMap.get(DcMotor.class, "RR DT");
 
-//        Sweep = hardwareMap.get(DcMotor.class, "Sweep");  //For Competition robot
-//        Sweep.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //Sweep = hardwareMap.get(DcMotor.class, "Sweep");  //For Competition robot
+        //Sweep.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);  //For test robot
+        leftFrontDrive.setDirection(DcMotorSimple.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        //parameters.mode                = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
+        if(imu == null) {
+            telemetry.log().add("Drive Init: IMU Null; Initializing");
+            telemetry.update();
+            BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+            //parameters.mode                = BNO055IMU.SensorMode.GYRONLY;
+            parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+            parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+            parameters.loggingEnabled = true;
+            parameters.loggingTag = "IMU";
+            //parameters.calibrationDataFile = "IMUCalibration.json"; // see the calibration sample opmode
 
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+            // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+            // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+            // and named "imu".
+            imu = hardwareMap.get(BNO055IMU.class, "imu");
 
-//        byte AXIS_MAP_CONFIG_BYTE = 0x6; //This is what to write to the AXIS_MAP_CONFIG register to swap x and z axes
-//        byte AXIS_MAP_SIGN_BYTE = 0x1; //This is what to write to the AXIS_MAP_SIGN register to negate the z axis
-//
-//        //Need to be in CONFIG mode to write to registers
-//        imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.CONFIG.bVal);
-//
-//        opMode.sleep(100); //Changing modes requires a delay before doing anything else
-//
-//        //Write to the AXIS_MAP_CONFIG register
-//        imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG, AXIS_MAP_CONFIG_BYTE);
-//
-//        //Write to the AXIS_MAP_SIGN register
-//        //imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN, AXIS_MAP_SIGN_BYTE);
-//
-//        //Need to change back into the IMU mode to use the gyro
-//        imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal);
-//
-//        opMode.sleep(100); //Changing modes again requires a delay
-//
-//        Log.i(TAG, String.format("IMU Register OPR_MODE: ", imu.read(BNO055IMU.Register.OPR_MODE, 1)));
-        imu.initialize(parameters);
-        // make sure the imu gyro is calibrated before continuing.
-        while (!opMode.isStopRequested() && !imu.isGyroCalibrated()) {
-            opMode.sleep(50);
-            opMode.idle();
+            imu.initialize(parameters);
+            // make sure the imu gyro is calibrated before continuing.
+            while (!opMode.isStopRequested() && !imu.isGyroCalibrated()) {
+                opMode.sleep(50);
+                opMode.idle();
+            }
+            telemetry.log().add("Drive: init: Gyro calibrated");
+            telemetry.update();
+
+            // make sure the imu gyro is calibrated before continuing.
+            long startMillis = System.currentTimeMillis();
+            while (!opMode.isStopRequested() && !imu.isAccelerometerCalibrated() && System.currentTimeMillis() - startMillis < 5000) {
+                opMode.sleep(50);
+                opMode.idle();
+            }
+            if(System.currentTimeMillis() - startMillis > 5000)
+                telemetry.log().add("Drive: init: Accel calibration timed out");
+            else
+                telemetry.log().add("Drive: init: Accel calibrated");
+            telemetry.update();
+            imuSecondOpModeAdjustment = 0;
+        } else {
+            opMode.telemetry.log().add("Drive Init: IMU already initialized");
+            //imuSecondOpModeAdjustment = -2.75;
+            //imuSecondOpModeAdjustment = getImuAngle();
+            imuSecondOpModeAdjustment = 0;
         }
+        setTargetAngle(0);
+        opMode.telemetry.log().add("Drive: init: IMU: status: %s, calibr: %s", imu.getSystemStatus().toString(), imu.getCalibrationStatus().toString());
+        telemetry.update();
         Log.i(TAG, "init: IMU status: " + imu.getSystemStatus());
         Log.i(TAG, "init: IMU calibration status: " + imu.getCalibrationStatus());
-        //Set IMU calibration angle to average of 10 readings
-        mImuCalibrationAngle = 0;
-        for(int i = 0; i < 10; i++){
-            mImuCalibrationAngle += getImuAngle();
-            opMode.sleep(30);
-        }
-        mImuCalibrationAngle /= 10;
     }
 
     public void vroom_vroom (double magRight, double thetaRight, double magLeft, double thetaLeft) {
@@ -254,44 +257,6 @@ public class Drive2 {
         setMotorPowersPhi(speedsPhi);
     }
 
-    public void vroomVroomWaitForEncoders(double magRight, double thetaRight, double magLeft, double thetaLeft, double timeout){
-        vroom_vroom(magRight, thetaRight, magLeft, thetaLeft);
-        // keep looping while we are still active, and there is time left, and both motors are running.
-        // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
-        // its target position, the motion will stop.  This is "safer" in the event that the robot will
-        // always end the motion as soon as possible.
-        // However, if you require that BOTH motors have finished their moves before the robot continues
-        // onto the next step, use (isBusy() || isBusy()) in the loop test.
-        boolean isAccelerating = true, isDecelerating = false;
-        double accelerationStartTime = runtime.seconds();
-        while (opMode.opModeIsActive() &&
-                (runtime.seconds() < timeout) &&
-                (leftFrontDrive.isBusy() || leftBackDrive.isBusy() || rightFrontDrive.isBusy() || rightBackDrive.isBusy())) {
-
-            if(isAccelerating){
-                setMotorPowers(Math.max(getFractionalPosition(leftFrontDrive)*magLeft*20, 0.2), Math.max(getFractionalPosition(rightFrontDrive)*magRight*20, 0.1));
-                if(getFractionalPosition(leftFrontDrive) >= 0.05){
-                    isAccelerating = false;
-                }
-            }else if(!isDecelerating){
-                setMotorPowers(magLeft, magRight);
-                if(getFractionalPosition(leftFrontDrive) >= 0.95){
-                    isDecelerating = true;
-                }
-            }else{
-                setMotorPowers(Math.max((1-getFractionalPosition(leftFrontDrive))*magLeft*20, 0.2),
-                        Math.max((1-getFractionalPosition(rightFrontDrive))*magRight*20, 0.2));
-            }
-
-            // Display it for the driver.
-            telemetry.addData("Path1",  "Running to %7d :%7d", motorTargetPositions.get(leftFrontDrive),  motorTargetPositions.get(rightFrontDrive));
-            telemetry.addData("Path2",  "Running at %7d :%7d",
-                    leftFrontDrive.getCurrentPosition(),
-                    rightFrontDrive.getCurrentPosition());
-            telemetry.addData("getFractionalPosition", getFractionalPosition(leftFrontDrive));
-            telemetry.update();
-        }
-    }
 
     //               ^
     //               |  Y axis
@@ -315,9 +280,10 @@ public class Drive2 {
         double inchesTraveledX = 0, inchesTraveledY = 0, inchesTraveledTotal = 0, rotationInchesTotal = 0;
         double cycleMillisNow = 0, cycleMillisPrior = System.currentTimeMillis(), cycleMillisDelta, startMillis = System.currentTimeMillis();
         //vroom_vroom(speed, theta, speed, theta);
+        getImuAngle();
         vroom_vroom_phi(speed, theta);
         adjustThetaInit();
-        setTargetAngle(mImuCalibrationAngle);
+        //setTargetAngle(mImuCalibrationAngle);
         while (opMode.opModeIsActive() && runtime.seconds() < timeout && inchesTraveledTotal <= magnitude){
             int tickCountNowLeftFront = leftFrontDrive.getCurrentPosition();
             int tickCountNowLeftBack = leftBackDrive.getCurrentPosition();
@@ -377,22 +343,6 @@ public class Drive2 {
         }
     }
 
-    public void turnOnRunToPosition(){
-        // Turn On RUN_TO_POSITION
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-    }
-
-    public void turnOffRunToPosition(){
-        // Turn off RUN_TO_POSITION
-        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
     public void stopResetEncoder(){
         leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -423,29 +373,6 @@ public class Drive2 {
         rightBackDrive.setPower(0);
     }
 
-    public void setNewTargetPosition(double leftInches, double rightInches){
-
-        // Determine new target position, and pass to motor controller
-        motorInitialPositions.put(leftFrontDrive, leftFrontDrive.getCurrentPosition());
-        motorInitialPositions.put(leftBackDrive, leftBackDrive.getCurrentPosition());
-        motorInitialPositions.put(rightFrontDrive, rightFrontDrive.getCurrentPosition());
-        motorInitialPositions.put(rightBackDrive, rightBackDrive.getCurrentPosition());
-
-        motorTargetPositions.put(leftFrontDrive, motorInitialPositions.get(leftFrontDrive) + (int)(leftInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(leftBackDrive, motorInitialPositions.get(leftBackDrive) + (int)(leftInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(rightFrontDrive, motorInitialPositions.get(rightFrontDrive) + (int)(rightInches * COUNTS_PER_INCH));
-        motorTargetPositions.put(rightBackDrive, motorInitialPositions.get(rightBackDrive) + (int)(rightInches * COUNTS_PER_INCH));
-
-        leftFrontDrive.setTargetPosition(motorTargetPositions.get(leftFrontDrive));
-        leftBackDrive.setTargetPosition(motorTargetPositions.get(leftBackDrive));
-        rightFrontDrive.setTargetPosition(motorTargetPositions.get(rightFrontDrive));
-        rightBackDrive.setTargetPosition(motorTargetPositions.get(rightBackDrive));
-    }
-
-    public double getFractionalPosition(DcMotor motor){
-        return ((double)motor.getCurrentPosition() - motorInitialPositions.get(motor)) / (motorTargetPositions.get(motor) - motorInitialPositions.get(motor));
-    }
-
     public void setMotorPowers(double magLeft, double magRight){
         leftFrontDrive.setPower(motorPowerFactors.get(leftFrontDrive) * magLeft);
         rightFrontDrive.setPower(motorPowerFactors.get(leftBackDrive) * magRight);
@@ -463,7 +390,7 @@ public class Drive2 {
     private double thetaErrorSum;
     public void adjustThetaInit() { thetaErrorSum = 0; }
     public void adjustTheta(double targetX, double targetY, double targetSpeed, double nowX, double nowY){
-        if(nowX == 0 && nowY == 0){
+        if(nowX == 0 && nowY == 0 && mTargetAngle == 0){
             Log.i("Drive", "adjustTheta: nowX and nowY are both still zero so not computing an adjustment factor yet");
             return;
         }
@@ -488,10 +415,10 @@ public class Drive2 {
                 targetTheta/Math.PI*180, nowTheta/Math.PI*180, adjustedTargetTheta/Math.PI*180, thetaErrorSum/Math.PI*180));
     }
 
-    double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle, mImuCalibrationAngle, mImuAngleErrorSum = 0;
+    double mCurrentImuAngle, mPriorImuAngle, mTargetAngle, mAdjustedAngle, mPriorAdjustedAngle, mImuCalibrationAngle;
 
     public void setTargetAngle(double targetAngle){
-        mPriorImuAngle = mTargetAngle = targetAngle;
+        mPriorImuAngle = mTargetAngle = targetAngle + imuSecondOpModeAdjustment;
     }
 
     public double getImuAngle(){
@@ -501,10 +428,11 @@ public class Drive2 {
         // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
 
         Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZXY, AngleUnit.DEGREES);
+        double adjustedHeading = angles.firstAngle + imuSecondOpModeAdjustment;
         telemetry.addData("IMU Angles (X/Y/Z)", "%.1f / %.1f / %.1f", angles.secondAngle, angles.thirdAngle, angles.firstAngle);
         telemetry.update();
         Log.i(TAG, String.format("getImuAngle: IMU Angles (X/Y/Z): %.1f / %.1f / %.1f", angles.secondAngle, angles.thirdAngle, angles.firstAngle));
-        return angles.firstAngle;
+        return mCurrentImuAngle = angles.firstAngle;
     }
 
     /**
@@ -533,15 +461,24 @@ public class Drive2 {
      * @return New adjusted angle used to create adjusted power levels
      */
     public double getAdjustedAngle(){
-        return mAdjustedAngle = mPriorAdjustedAngle + getImuDeltaAngle();
+        return mAdjustedAngle = getEulerAngleDegrees(getImuAngle());
     }
 
     /**
      * Convert an angle such that -pi <= angle <= pi
      */
     private double getEulerAngle(double angle){
-        if(angle < -Math.PI) return angle + 2 * Math.PI;
-        else if (angle > Math.PI) return angle - 2 * Math.PI;
+        if(angle < -Math.PI) return angle%(2*Math.PI) + 2 * Math.PI;
+        else if (angle > Math.PI) return angle%(2*Math.PI) - 2 * Math.PI;
+        else return angle;
+    }
+
+    /**
+     * Convert an angle such that -pi <= angle <= pi
+     */
+    private double getEulerAngleDegrees(double angle){
+        if(angle < -180) return angle%360 + 360;
+        else if (angle > 180) return angle%360 - 180;
         else return angle;
     }
 
@@ -556,13 +493,12 @@ public class Drive2 {
         // to stay on a straight line.
         double angleError, powerCorrection, angle, gain;
 
-        angle = getImuAngle();  //Not corrected for Euler angle
+        angle = getAdjustedAngle();  //IMU angle converted to Euler angle (IMU may already deliver Euler angles)
 
         angleError = mTargetAngle - angle;        // reverse sign of angle for correction.
-        mImuAngleErrorSum += angleError;
 
-        gain = Math.max(-0.3*Math.abs(angleError) + 0.5, .2);  //Varies from .2 around zero to .05 for errors above 10 degrees
-        powerCorrection = angleError * gain;// + mImuAngleErrorSum * gain/2;
+        gain = Math.max(-0.05*Math.abs(angleError) + 0.1, .05);  //Varies from .2 around zero to .05 for errors above 10 degrees
+        powerCorrection = angleError * gain;
 
         return powerCorrection;
     }
@@ -623,7 +559,7 @@ public class Drive2 {
      */
     private Speeds getSpeeds(double targetSpeed, double nowAngle){
         int sign = nowAngle > 0 ? 1 : -1;
-        double powerCorrection = getPowerCorrection() * sign;  //TODO: put back in once imu is working again
+        double powerCorrection = getPowerCorrection() * sign;
         //double powerCorrection = 0;
         double adjustedLeftSpeed, adjustedRightSpeed;
         if(targetSpeed + powerCorrection > 1){
@@ -652,11 +588,6 @@ public class Drive2 {
         double powerCorrection = getPowerCorrection();
         double adjustedLeftFrontSpeed, adjustedLeftBackSpeed, adjustedRightFrontSpeed, adjustedRightBackSpeed;
 
-//        motorPowerFactors.put(leftFrontDrive, leftFrontPowerFactor);
-//        motorPowerFactors.put(leftBackDrive, leftBackPowerFactor);
-//        motorPowerFactors.put(rightFrontDrive, rightFrontPowerFactor);
-//        motorPowerFactors.put(rightBackDrive, rightBackPowerFactor);
-
         if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
             adjustedLeftFrontSpeed = 1;
         }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection < -1) {
@@ -664,16 +595,6 @@ public class Drive2 {
         }else{
             adjustedLeftFrontSpeed = motorPowerFactors.get(leftFrontDrive) * targetSpeed - powerCorrection;
         }
-//        if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection < -1){
-//            adjustedLeftFrontSpeed -= motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
             adjustedLeftBackSpeed = 1;
@@ -682,16 +603,6 @@ public class Drive2 {
         }else{
             adjustedLeftBackSpeed = motorPowerFactors.get(leftBackDrive) * targetSpeed - powerCorrection;
         }
-//        if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection < -1){
-//            adjustedLeftBackSpeed -= motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
             adjustedRightFrontSpeed = 1;
@@ -700,34 +611,14 @@ public class Drive2 {
         }else{
             adjustedRightFrontSpeed = motorPowerFactors.get(rightFrontDrive) * targetSpeed + powerCorrection;
         }
-//        if(motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(leftFrontDrive)*targetSpeed - powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightFrontSpeed += motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection + 1;
-//        }
 
         if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection > 1){
             adjustedRightBackSpeed = 1;
         }else if(motorPowerFactors.get(rightBackDrive)*targetSpeed + powerCorrection < -1) {
             adjustedRightBackSpeed = -1;
         }else{
-            adjustedRightBackSpeed = motorPowerFactors.get(rightFrontDrive) * targetSpeed + powerCorrection;
+            adjustedRightBackSpeed = motorPowerFactors.get(rightBackDrive) * targetSpeed + powerCorrection;
         }
-//        if(motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection > 1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection - 1;
-//        }else if(motorPowerFactors.get(leftBackDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(leftBackDrive)*targetSpeed - powerCorrection + 1;
-//        }
-//        if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection > 1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection - 1;
-//        }else if(motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection < -1){
-//            adjustedRightBackSpeed += motorPowerFactors.get(rightFrontDrive)*targetSpeed + powerCorrection + 1;
-//        }
 
         mPriorImuAngle = mCurrentImuAngle;
         mPriorAdjustedAngle = mAdjustedAngle;
